@@ -465,6 +465,7 @@ body {
   width: var(--sidebar-width);
   flex-shrink: 0;
   min-width: 0;
+  padding-inline-end: 0.5rem;
   position: sticky;
   top: var(--layout-gutter);
   display: flex;
@@ -2087,6 +2088,7 @@ body {
     order: 2;
     margin-bottom: 0.5rem;
     width: 100%;
+    padding-inline-end: 0;
     position: static;
     flex-direction: column;
     max-height: none;

@@ -82,6 +82,15 @@
   border-radius: 0 0 var(--radius) var(--radius);
 }
 
+.filterPanelBody:empty {
+  display: none;
+}
+
+.filterPanel:has(.filterPanelBody:empty) .filterPanelHeader {
+  border-radius: var(--radius);
+  border-bottom: 0;
+}
+
 .filterPanelBodyShort {
   padding-block: 0.4rem;
 }
@@ -318,4 +327,3 @@
   color: var(--text-muted);
   font-size: 0.78rem;
 }
-
