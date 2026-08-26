@@ -1,4 +1,4 @@
-import { esc } from '@/core/safe-render';
+import { esc, safeHttpUrl } from '@/core/safe-render';
 
 const SMALL_WORDS = new Set(['a', 'an', 'and', 'as', 'at', 'but', 'by', 'for', 'from', 'in', 'into', 'of', 'on', 'or', 'the', 'to', 'with']);
 
@@ -15,6 +15,7 @@ interface ParsedSteamDescription {
 
 const HEADING_TITLE_CASE_THRESHOLD = 0.75;
 const MAX_HEADING_LENGTH = 64;
+const STEAM_IMAGE_TOKEN_RE = /^\[\[STEAM_IMAGE:(.+)\]\]$/;
 
 function cleanLine(value: unknown): string {
   return String(value || '')
@@ -49,6 +50,15 @@ function titleCaseRatio(line: string): number {
   return titleWords / words.length;
 }
 
+function isSteamImage(line: string): boolean {
+  return STEAM_IMAGE_TOKEN_RE.test(line);
+}
+
+function isAllCapsHeading(line: string): boolean {
+  const letters = line.replace(/[^a-z]/gi, '');
+  return letters.length >= 2 && letters === letters.toUpperCase();
+}
+
 function isLikelyHeading(line: string, nextLine: string): boolean {
   if (!nextLine || isExplicitListItem(line)) return false;
   if (line.length > MAX_HEADING_LENGTH) return false;
@@ -56,6 +66,7 @@ function isLikelyHeading(line: string, nextLine: string): boolean {
   if (/[.!?)]$/.test(line)) return false;
   if (isLikelyListValue(line)) return false;
   if (/:$/.test(line)) return true;
+  if (isAllCapsHeading(line)) return true;
   return titleCaseRatio(line) >= HEADING_TITLE_CASE_THRESHOLD;
 }
 
@@ -102,6 +113,11 @@ function parseSteamDescription(text: unknown): ParsedSteamDescription {
       continue;
     }
 
+    if (isSteamImage(line)) {
+      currentSection.paragraphs.push(line);
+      continue;
+    }
+
     if (shouldAppendToPreviousListItem(line, currentSection)) {
       const lastIndex = currentSection.list.length - 1;
       currentSection.list[lastIndex] = `${currentSection.list[lastIndex] ?? ''} ${line}`;
@@ -119,7 +135,12 @@ function parseSteamDescription(text: unknown): ParsedSteamDescription {
 }
 
 function renderParagraphs(items: string[]): string {
-  return items.map(item => `<p>${esc(item)}</p>`).join('');
+  return items.map(item => {
+    const imageMatch = item.match(STEAM_IMAGE_TOKEN_RE);
+    const imageUrl = imageMatch ? safeHttpUrl(imageMatch[1]) : null;
+    if (imageUrl) return `<img class="steam-description-image" src="${esc(imageUrl.href)}" alt="" loading="lazy">`;
+    return `<p>${esc(item)}</p>`;
+  }).join('');
 }
 
 function renderList(items: string[]): string {

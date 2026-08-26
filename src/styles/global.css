@@ -210,7 +210,7 @@ textarea:focus-visible {
   --text: #0f172a;
   --text-secondary: #475569;
   --text-muted: #64748b;
-  --text-light: #94a3b8;
+  --text-light: #687586;
 
   --bg: #ffffff;
   --bg-page: #f8fafc;
@@ -1400,7 +1400,8 @@ body {
   margin-inline-start: auto;
 }
 
-.header-theme-toggle {
+.header-theme-toggle,
+.header-lang-toggle {
   min-width: 44px;
   padding: 0.45rem 0.55rem;
 }

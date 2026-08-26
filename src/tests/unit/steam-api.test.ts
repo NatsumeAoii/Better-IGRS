@@ -32,6 +32,33 @@ afterEach(() => {
 });
 
 describe('createSteamApi', () => {
+  it('uses the Worker proxy route with the upstream path and query', async () => {
+    const workerProxyBase = 'https://igrs.test/proxy/steam/';
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(jsonResponse({
+      2391960: { success: true, data: { name: 'Steam Game' } },
+    }));
+    const api = createSteamApi({ proxies: [{ base: workerProxyBase, mode: 'path' }] });
+
+    await api.fetchSteamAppDetails('2391960');
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      'https://igrs.test/proxy/steam/api/appdetails?appids=2391960',
+      expect.objectContaining({ signal: expect.any(AbortSignal) })
+    );
+  });
+
+  it('keeps legacy proxy bases in full-URL mode', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(jsonResponse({ value: 1 }));
+    const api = createSteamApi({ proxyBase: TEST_PROXY_BASE, proxyAllowlist: [TEST_PROXY_BASE] });
+
+    await api.fetchJsonWithTimeout('https://store.steampowered.com/api/appdetails?appids=2391960', 1000, { retries: 0 });
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      'https://cors.mefi.workers.dev/https://store.steampowered.com/api/appdetails?appids=2391960',
+      expect.objectContaining({ signal: expect.any(AbortSignal) })
+    );
+  });
+
   it('starts a fresh details request when the previous same-app caller was aborted before cleanup settles', async () => {
     const firstFetch = deferred<Response>();
     const fetchSpy = vi.spyOn(globalThis, 'fetch')

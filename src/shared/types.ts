@@ -163,6 +163,15 @@ export interface SteamGameDetails {
   about_the_game?: string;
   short_description?: string;
   header_image?: string;
+  screenshots?: Array<{
+    id?: number;
+    path_thumbnail?: string;
+    path_full?: string;
+  }>;
+  pc_requirements?: {
+    minimum?: string;
+    recommended?: string;
+  };
   type?: string;
   is_free?: boolean;
   support_info?: {

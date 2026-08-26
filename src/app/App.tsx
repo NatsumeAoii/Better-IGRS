@@ -1,5 +1,5 @@
-import { lazy, Suspense, type ReactNode } from 'react';
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { lazy, Suspense, useEffect, type ReactNode } from 'react';
+import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { DataProvider } from '@/app/providers/data-provider';
 import { LanguageProvider, useLanguage } from '@/app/providers/language-provider';
 import { ThemeProvider } from '@/app/providers/theme-provider';
@@ -14,6 +14,13 @@ import { RouteErrorBoundary } from '@/shared/components/route-error-boundary';
 function LocalizedRouteErrorBoundary({ children }: { children: ReactNode }) {
   const { t } = useLanguage();
   return <RouteErrorBoundary t={t}>{children}</RouteErrorBoundary>;
+}
+
+// Reset scroll position on route change (UX standard — prevents disorientation)
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
+  return null;
 }
 
 const RatingsPage = lazy(() =>
@@ -31,6 +38,7 @@ export function App() {
 
   return (
     <BrowserRouter basename={routerBasename}>
+      <ScrollToTop />
       <ThemeProvider>
         <LanguageProvider>
           <DataProvider>

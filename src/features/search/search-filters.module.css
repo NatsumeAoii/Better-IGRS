@@ -209,7 +209,7 @@
   align-items: center;
   justify-content: space-between;
   width: calc(100% + 1rem);
-  min-height: 40px;
+  min-height: 44px;
   padding: 0.5rem 0.75rem;
   margin-inline: -0.5rem;
   background: none;
@@ -268,7 +268,7 @@
   align-items: center;
   gap: 0.4rem;
   width: calc(100% + 1rem);
-  min-height: 40px;
+  min-height: 44px;
   margin-top: 0.25rem;
   margin-inline: -0.5rem;
   padding: 0.5rem 0.75rem;
@@ -300,7 +300,7 @@
 
 .publisherSearchInput {
   width: 100%;
-  min-height: 36px;
+  min-height: 44px;
   margin-block: 0.5rem;
   padding: 0.4rem 0.6rem;
   background: var(--bg);

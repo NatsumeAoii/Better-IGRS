@@ -10,11 +10,21 @@ import DOMPurify from 'dompurify';
 const ALLOWED_TAGS = [
   'p', 'ul', 'ol', 'li',
   'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-  'b', 'strong', 'i', 'em', 'a', 'br', 'span',
+  'b', 'strong', 'i', 'em', 'a', 'br', 'span', 'img',
   'div', 'section'
 ];
 
-const ALLOWED_ATTRS = ['href', 'target', 'rel', 'class'];
+const ALLOWED_ATTRS = ['href', 'target', 'rel', 'class', 'src', 'alt', 'loading'];
+
+function imagePlaceholder(source: string): string {
+  try {
+    const url = new URL(source);
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return '\n';
+    return `\n[[STEAM_IMAGE:${url.href}]]\n`;
+  } catch {
+    return '\n';
+  }
+}
 
 /**
  * Sanitizes an HTML string, preserving only safe formatting elements.
@@ -40,6 +50,7 @@ export function sanitizeHtml(dirty: string): string {
 export function stripHtml(value: unknown): string {
   if (!value) return '';
   const raw = String(value)
+    .replace(/<img\b[^>]*\bsrc\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))[^>]*>/gi, (_match, doubleQuoted, singleQuoted, unquoted) => imagePlaceholder(doubleQuoted || singleQuoted || unquoted || ''))
     .replace(/<\s*br\s*\/?\s*>/gi, '\n')
     .replace(/<\s*\/\s*(p|div|li|h[1-6])\s*>/gi, '\n')
     .replace(/<\s*hr\b[^>]*>/gi, '\n');
@@ -47,7 +58,9 @@ export function stripHtml(value: unknown): string {
   const stripped = DOMPurify.sanitize(raw, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
 
   return stripped
-    .replace(/\u00a0/g, ' ')
+    // Steam often uses repeated non-breaking spaces as paragraph separators.
+    .replace(/(?:(?:\u00a0|&nbsp;)[ \t]*){2,}/gi, '\n\n')
+    .replace(/\u00a0|&nbsp;/gi, ' ')
     .replace(/\u200b|\u200c|\u200d|\ufeff/g, '')
     .replace(/[\u25a0\u25a1\u25aa\u25ab\u25cf]/g, ' ')
     .replace(/-{4,}/g, ' ')

@@ -27,16 +27,23 @@ export function isSteamProxyError(error: unknown): error is SteamProxyError {
 
 const LEGACY_PROXY_BASE = 'https://cors.mefi.workers.dev/';
 const OWN_PROXY_PATH = '/proxy/steam/';
+type SteamProxyMode = 'path' | 'url';
+
+interface SteamProxy {
+  base: string;
+  mode: SteamProxyMode;
+}
 
 /**
  * Proxy bases tried in order while the primary is unreachable.
  * The own same-origin Worker route comes first; the legacy third-party
  * CORS proxy stays as automatic fallback until it can be pruned.
  */
-function defaultProxyBases(): string[] {
-  const configured = import.meta.env.VITE_STEAM_PROXY_BASE?.trim();
-  const own = configured || `${window.location.origin}${OWN_PROXY_PATH}`;
-  return [own, LEGACY_PROXY_BASE].filter((base, index, all) => all.indexOf(base) === index);
+function defaultProxies(): SteamProxy[] {
+  return [
+    { base: `${window.location.origin}${OWN_PROXY_PATH}`, mode: 'path' },
+    { base: LEGACY_PROXY_BASE, mode: 'url' }
+  ];
 }
 
 type Translate = (key: string) => string;
@@ -44,8 +51,12 @@ type Translate = (key: string) => string;
 interface SteamApiOptions {
   proxyAllowlist?: string[];
   proxyBase?: string;
+  /** Transport mode for legacy `proxyBase`; defaults to `url`. */
+  proxyMode?: SteamProxyMode;
   /** Explicit ordered proxy list (overrides derived defaults). */
   proxyBases?: string[];
+  /** Explicit proxy transports. Use `path` for the same-origin Worker route. */
+  proxies?: SteamProxy[];
   t?: Translate;
 }
 
@@ -61,8 +72,12 @@ function wait(ms: number): Promise<void> {
   return new Promise(resolve => window.setTimeout(resolve, ms));
 }
 
-function proxiedUrl(url: string, proxyBase: string): string {
-  return `${proxyBase}${url}`;
+function proxiedUrl(url: string, proxy: SteamProxy): string {
+  if (proxy.mode === 'path') {
+    const upstreamUrl = new URL(url);
+    return `${proxy.base}${upstreamUrl.pathname.slice(1)}${upstreamUrl.search}`;
+  }
+  return `${proxy.base}${url}`;
 }
 
 function normalizedHref(value: string): string {
@@ -97,32 +112,52 @@ function isAllowedProxyBase(base: string, allowlist: readonly string[]): boolean
 }
 
 /**
- * Resolves the ordered proxy base list:
- * - explicit `proxyBases` option wins (tests / advanced config),
- * - then a single explicit `proxyBase` or VITE_STEAM_PROXY_BASE,
+ * Resolves ordered proxy transports:
+ * - explicit `proxies` option wins (tests / advanced config),
+ * - then legacy `proxyBases` as full-URL CORS proxies,
+ * - then legacy `proxyBase` with its explicit (or legacy `url`) mode,
+ * - then VITE_STEAM_PROXY_BASE with VITE_STEAM_PROXY_MODE (default `url`),
  * - otherwise the derived default (same-origin Worker first, legacy fallback).
  * Insecure candidates (e.g. http dev origins without a configured proxy) are
  * dropped so local development keeps using the https third-party fallback.
  */
-function resolveProxyBases(options: SteamApiOptions): string[] {
+function resolveProxies(options: SteamApiOptions): SteamProxy[] {
+  if (options.proxies?.length) {
+    const seen = new Set<string>();
+    return options.proxies.flatMap(proxy => {
+      const base = normalizedHref(proxy.base.trim());
+      if (new URL(base).protocol !== 'https:') throw new Error('STEAM_PROXY_INSECURE');
+      if (seen.has(`${proxy.mode}:${base}`)) return [];
+      seen.add(`${proxy.mode}:${base}`);
+      return [{ base, mode: proxy.mode }];
+    });
+  }
+
   if (options.proxyBases?.length) {
     const bases = options.proxyBases.map(base => {
       const url = new URL(base.trim());
       if (url.protocol !== 'https:') throw new Error('STEAM_PROXY_INSECURE');
       return normalizedHref(url.href);
     });
-    return [...new Set(bases)];
+    return [...new Set(bases)].map(base => ({ base, mode: 'url' }));
   }
 
-  const explicit = options.proxyBase || import.meta.env.VITE_STEAM_PROXY_BASE;
-  if (explicit) return [normalizeSteamProxyBase(explicit, options.proxyAllowlist)];
+  if (options.proxyBase) {
+    return [{ base: normalizeSteamProxyBase(options.proxyBase, options.proxyAllowlist), mode: options.proxyMode ?? 'url' }];
+  }
+
+  const configured = import.meta.env.VITE_STEAM_PROXY_BASE;
+  if (configured) {
+    const mode = import.meta.env.VITE_STEAM_PROXY_MODE === 'path' ? 'path' : 'url';
+    return [{ base: normalizeSteamProxyBase(configured, options.proxyAllowlist), mode }];
+  }
 
   const allowlist = options.proxyAllowlist;
   // Validate https first (drops http dev origins), then the caller allowlist.
-  const valid = defaultProxyBases().filter(base => isAllowedProxyBase(base, [base]));
-  const filtered = allowlist ? valid.filter(base => isAllowedProxyBase(base, allowlist)) : valid;
+  const valid = defaultProxies().filter(proxy => isAllowedProxyBase(proxy.base, [proxy.base]));
+  const filtered = allowlist ? valid.filter(proxy => isAllowedProxyBase(proxy.base, allowlist)) : valid;
   if (!filtered.length) throw new Error('STEAM_PROXY_NOT_ALLOWED');
-  return filtered.map(base => normalizedHref(new URL(base).href));
+  return filtered.map(proxy => ({ ...proxy, base: normalizedHref(new URL(proxy.base).href) }));
 }
 
 function createLinkedAbortController(signal?: AbortSignal): { cleanup: () => void; controller: AbortController } {
@@ -144,7 +179,7 @@ function createLinkedAbortController(signal?: AbortSignal): { cleanup: () => voi
 
 export function createSteamApi(options: SteamApiOptions = {}) {
   const translate = typeof options.t === 'function' ? options.t : (() => 'Unable to load Steam data.');
-  const proxyBases = resolveProxyBases(options);
+  const proxies = resolveProxies(options);
 
   // Bounded LRU-style cache with TTL for Steam search results
   const CACHE_MAX_SIZE = 100;
@@ -196,7 +231,7 @@ export function createSteamApi(options: SteamApiOptions = {}) {
     let lastError: unknown = null;
     let totalAttempts = 0;
 
-    for (const proxyBase of proxyBases) {
+    for (const proxy of proxies) {
       // Only a network-level failure of the whole proxy justifies moving to the
       // next base; upstream/HTTP errors are terminal for every base.
       let proxyUnreachable = false;
@@ -207,7 +242,7 @@ export function createSteamApi(options: SteamApiOptions = {}) {
         const { controller, cleanup } = createLinkedAbortController(fetchOptions.signal);
         const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
         try {
-          const response = await fetch(proxiedUrl(url, proxyBase), { signal: controller.signal });
+          const response = await fetch(proxiedUrl(url, proxy), { signal: controller.signal });
           if (!response.ok) throw new Error(translate('steamchecker.error.load'));
 
           const contentType = response.headers.get('content-type') ?? '';

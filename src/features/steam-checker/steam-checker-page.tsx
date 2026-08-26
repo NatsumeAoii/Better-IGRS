@@ -1,5 +1,6 @@
-import { ExternalLink } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
+import { ChevronLeft, ChevronRight, ExternalLink, X } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState, type FormEvent, type MouseEvent } from 'react';
+import { createPortal } from 'react-dom';
 import { useSearchParams } from 'react-router-dom';
 import { renderSteamDescription } from '@/core/steam-description';
 import { safeHttpUrl } from '@/core/safe-render';
@@ -268,9 +269,72 @@ export function SteamCheckerPage() {
 
 function SteamCheckerMain({ onRetry, state, t }: { onRetry: (appId: string) => void; state: CheckerState; t: (key: string) => string }) {
   const [descExpanded, setDescExpanded] = useState(false);
+  const [imageViewerUrls, setImageViewerUrls] = useState<URL[]>([]);
+  const [imageViewerIndex, setImageViewerIndex] = useState(0);
+  const imageTriggerRef = useRef<HTMLElement | null>(null);
+  const imageViewerCloseRef = useRef<HTMLButtonElement>(null);
+  const imageViewerDialogRef = useRef<HTMLDivElement>(null);
 
   const currentAppId = state.status !== 'idle' ? state.appId : null;
-  useEffect(() => { setDescExpanded(false); }, [currentAppId]);
+  useEffect(() => {
+    setDescExpanded(false);
+    setImageViewerUrls([]);
+    setImageViewerIndex(0);
+  }, [currentAppId]);
+
+  const closeImageViewer = useCallback(() => {
+    setImageViewerUrls([]);
+    setImageViewerIndex(0);
+    imageTriggerRef.current?.focus();
+  }, []);
+
+  const moveImageViewer = useCallback((direction: number) => {
+    setImageViewerIndex(index => (index + direction + imageViewerUrls.length) % imageViewerUrls.length);
+  }, [imageViewerUrls.length]);
+
+  useEffect(() => {
+    if (!imageViewerUrls.length) return;
+    imageViewerCloseRef.current?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') closeImageViewer();
+      if (event.key === 'ArrowLeft') moveImageViewer(-1);
+      if (event.key === 'ArrowRight') moveImageViewer(1);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [closeImageViewer, imageViewerUrls.length, moveImageViewer]);
+
+  // Lock background scroll while the viewer is open — same pattern as
+  // changelog-modal/mobile-nav (#10.2) — so the page behind cannot be
+  // scrolled or otherwise interacted with until the image is closed.
+  useEffect(() => {
+    if (!imageViewerUrls.length) return;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, [imageViewerUrls.length]);
+
+  // Focus trap: cycle Tab/Shift+Tab within the viewer dialog only.
+  useEffect(() => {
+    if (!imageViewerUrls.length) return;
+    function handleFocusTrap(event: KeyboardEvent) {
+      if (event.key !== 'Tab') return;
+      const dialog = imageViewerDialogRef.current;
+      if (!dialog) return;
+      const focusable = dialog.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey) {
+        if (document.activeElement === first) { event.preventDefault(); last?.focus(); }
+      } else {
+        if (document.activeElement === last) { event.preventDefault(); first?.focus(); }
+      }
+    }
+    document.addEventListener('keydown', handleFocusTrap);
+    return () => document.removeEventListener('keydown', handleFocusTrap);
+  }, [imageViewerUrls.length]);
 
   if (state.status === 'idle') {
     return (
@@ -314,6 +378,27 @@ function SteamCheckerMain({ onRetry, state, t }: { onRetry: (appId: string) => v
   const authorName = state.steamGame.developers?.[0] || state.steamGame.publishers?.[0] || t('steamchecker.unknown');
   const descriptionRaw = state.steamGame.detailed_description || state.steamGame.about_the_game || '';
   const description = stripHtml(descriptionRaw) || t('detail.noDesc');
+  const screenshots = (state.steamGame.screenshots || [])
+    .map(screenshot => safeHttpUrl(screenshot.path_full || screenshot.path_thumbnail || ''))
+    .filter((url): url is URL => url !== null)
+    .slice(0, 6);
+  const minimumRequirements = stripHtml(state.steamGame.pc_requirements?.minimum || '');
+  const recommendedRequirements = stripHtml(state.steamGame.pc_requirements?.recommended || '');
+  const openImageViewer = (url: URL, trigger: HTMLElement, gallery: URL[]) => {
+    imageTriggerRef.current = trigger;
+    const uniqueGallery = gallery.filter((item, index) => gallery.findIndex(candidate => candidate.href === item.href) === index);
+    setImageViewerUrls(uniqueGallery);
+    setImageViewerIndex(Math.max(0, uniqueGallery.findIndex(item => item.href === url.href)));
+  };
+  const openDescriptionImage = (event: MouseEvent<HTMLDivElement>) => {
+    const image = (event.target as HTMLElement).closest<HTMLImageElement>('.steam-description-image');
+    const url = image ? safeHttpUrl(image.currentSrc || image.src) : null;
+    const gallery = Array.from(event.currentTarget.querySelectorAll<HTMLImageElement>('.steam-description-image'))
+      .map(item => safeHttpUrl(item.currentSrc || item.src))
+      .filter((item): item is URL => item !== null);
+    if (image && url) openImageViewer(url, image, gallery);
+  };
+  const imageViewerUrl = imageViewerUrls[imageViewerIndex] ?? null;
   const steamStoreUrl = `https://store.steampowered.com/app/${state.appId}`;
   const headerImageUrl = safeHttpUrl(state.steamGame.header_image || '');
 
@@ -338,10 +423,41 @@ function SteamCheckerMain({ onRetry, state, t }: { onRetry: (appId: string) => v
           </a>
         </div>
       </div>
-      <div className={`${styles.resultDescriptionShell}${descExpanded ? '' : ` ${styles.resultDescriptionCollapsed}`}`} dangerouslySetInnerHTML={{ __html: sanitizeHtml(renderSteamDescription(description)) }} />
+      <div className={`${styles.resultDescriptionShell}${descExpanded ? '' : ` ${styles.resultDescriptionCollapsed}`}`} onClick={openDescriptionImage} dangerouslySetInnerHTML={{ __html: sanitizeHtml(renderSteamDescription(description)) }} />
       <button className={styles.descToggleBtn} type="button" onClick={() => setDescExpanded(prev => !prev)}>
         {descExpanded ? t('steamchecker.showLess') : t('steamchecker.showMore')}
       </button>
+      {screenshots.length ? (
+        <section className={styles.screenshots} aria-label={t('steamchecker.screenshots')}>
+          <h2>{t('steamchecker.screenshots')}</h2>
+          <div className={styles.screenshotGrid}>
+            {screenshots.map((url, index) => (
+              <button key={url.href} type="button" onClick={event => openImageViewer(url, event.currentTarget, screenshots)} aria-label={t('steamchecker.openImage').replace('{number}', String(index + 1))}>
+                <img src={url.href} alt={`${state.steamGame.name || t('steamchecker.unknown')} screenshot ${index + 1}`} loading="lazy" />
+              </button>
+            ))}
+          </div>
+        </section>
+      ) : null}
+      {minimumRequirements || recommendedRequirements ? (
+        <section className={styles.requirements}>
+          <h2>{t('steamchecker.pcRequirements')}</h2>
+          {minimumRequirements ? <div><h3>{t('steamchecker.minimum')}</h3><p>{minimumRequirements}</p></div> : null}
+          {recommendedRequirements ? <div><h3>{t('steamchecker.recommended')}</h3><p>{recommendedRequirements}</p></div> : null}
+        </section>
+      ) : null}
+      {imageViewerUrl && typeof document !== 'undefined' ? createPortal(
+        <div className={styles.imageViewer} role="dialog" aria-modal="true" aria-label={t('steamchecker.imageViewer')} onClick={closeImageViewer}>
+          <div className={styles.imageViewerContent} ref={imageViewerDialogRef} onClick={event => event.stopPropagation()}>
+            <button className={styles.imageViewerClose} ref={imageViewerCloseRef} type="button" onClick={closeImageViewer} aria-label={t('steamchecker.closeImage')}>
+              <X aria-hidden="true" />
+            </button>
+            {imageViewerUrls.length > 1 ? <button className={`${styles.imageViewerNav} ${styles.imageViewerPrev}`} type="button" onClick={() => moveImageViewer(-1)} aria-label={t('steamchecker.previousImage')}><ChevronLeft aria-hidden="true" /></button> : null}
+            <img src={imageViewerUrl.href} alt={t('steamchecker.imageViewer')} />
+            {imageViewerUrls.length > 1 ? <button className={`${styles.imageViewerNav} ${styles.imageViewerNext}`} type="button" onClick={() => moveImageViewer(1)} aria-label={t('steamchecker.nextImage')}><ChevronRight aria-hidden="true" /></button> : null}
+          </div>
+        </div>
+      , document.body) : null}
     </section>
   );
 }

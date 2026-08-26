@@ -113,7 +113,8 @@ The browser app does not require a `.env` file. Optional settings:
 | `CHROME_PATH` | `npm run visual:check` | Explicit Chromium/Chrome/Edge executable path |
 | `CF_BEACON_TOKEN` | `npm run build` (Pages CI) | Cloudflare Web Analytics beacon token; when set, the beacon `<script>` is injected into every HTML entry. Leave unset for dev/token-less builds. Enabling also requires allowing `https://static.cloudflareinsights.com` in `script-src` (and `https://cloudflareinsights.com` in `connect-src`) in the deployed CSP. |
 | `SITE_ORIGIN` | Cloudflare Worker | Public site origin (set in `ops/worker/wrangler.toml`) |
-| `VITE_STEAM_PROXY_BASE` | Steam Checker client | Overrides the primary Steam proxy base (defaults to the same-origin `/proxy/steam/` Worker route) |
+| `VITE_STEAM_PROXY_BASE` | Steam Checker client | Overrides the primary Steam proxy base. Set `VITE_STEAM_PROXY_MODE=path` for a Worker-style proxy; otherwise it forwards the full upstream URL for legacy CORS proxies. |
+| `VITE_STEAM_PROXY_MODE` | Steam Checker client | Optional transport for `VITE_STEAM_PROXY_BASE`: `path` forwards only the Steam path and query; omit for legacy full-URL CORS proxy behavior. |
 
 ## Testing
 

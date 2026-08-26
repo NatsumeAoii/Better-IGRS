@@ -10,6 +10,7 @@ import { getDescriptorGuideCopy } from '@/core/descriptor-guide';
 import { getRatingGuideCopy } from '@/core/rating-guide';
 import { copyTextToClipboard } from '@/shared/lib/clipboard';
 import { normalizeSteamProxyBase } from '@/shared/api/steam-api';
+import { stripHtml } from '@/shared/lib/html';
 import { buildSteamRatingComparison } from '@/shared/lib/steam-domain';
 
 describe('safe rendering helpers', () => {
@@ -171,6 +172,26 @@ describe('Steam helpers', () => {
     expect(html).toContain('<li>Engage in real-time combat.</li>');
     expect(html).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
     expect(html).not.toContain('<script>');
+  });
+
+  it('preserves encoded Steam section separators for description formatting', () => {
+    const description = stripHtml('LAND&nbsp; &nbsp;Drop into the outskirts. &nbsp; &nbsp;LOOT&nbsp; &nbsp;Find better gear.');
+    const html = renderSteamDescription(description);
+
+    expect(html).toContain('<h3>LAND</h3>');
+    expect(html).toContain('<h3>LOOT</h3>');
+    expect(html).toContain('<li>Drop into the outskirts.</li>');
+    expect(html).toContain('<li>Find better gear.</li>');
+  });
+
+  it('renders safe Steam description images without retaining source markup', () => {
+    const description = stripHtml('Explore <img src="https://cdn.steamstatic.com/image.jpg" onerror="alert(1)"> a new world.');
+    const html = renderSteamDescription(description);
+
+    expect(description).not.toContain('<img');
+    expect(html).toContain('class="steam-description-image"');
+    expect(html).toContain('src="https://cdn.steamstatic.com/image.jpg"');
+    expect(html).not.toContain('onerror');
   });
 
   it('normalizes review summaries and Steam search results', () => {

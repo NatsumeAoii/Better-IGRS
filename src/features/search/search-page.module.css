@@ -78,6 +78,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
+  min-height: 44px;
   padding: 0.2rem 0.55rem;
   font-size: 0.7rem;
   font-family: inherit;
@@ -348,6 +349,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
+  min-height: 44px;
   padding: 0.35rem 0.7rem;
   margin-top: var(--space-1);
   font-size: 0.72rem;
@@ -422,7 +424,7 @@
   align-items: center;
   justify-content: center;
   min-width: 44px;
-  height: 32px;
+  min-height: 44px;
   padding: 0 0.5rem;
   font-size: 0.72rem;
   font-family: inherit;

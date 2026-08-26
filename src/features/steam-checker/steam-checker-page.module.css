@@ -226,7 +226,7 @@
 
 /* ─── Steam Description ─────────────────────────────────────── */
 
-.steamDescription {
+.resultDescriptionShell :global(.steam-description) {
   color: var(--text-secondary);
   display: grid;
   font-size: 0.95rem;
@@ -236,8 +236,177 @@
   overflow-wrap: anywhere;
 }
 
-.steamDescription p {
+.resultDescriptionShell :global(.steam-description-intro),
+.resultDescriptionShell :global(.steam-description-section) {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.resultDescriptionShell :global(.steam-description h3) {
+  color: var(--text);
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
   margin: 0;
+}
+
+.resultDescriptionShell :global(.steam-description p) {
+  margin: 0;
+}
+
+.resultDescriptionShell :global(.steam-description-list) {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  padding-inline-start: 1.25rem;
+}
+
+.resultDescriptionShell :global(.steam-description-image) {
+  border-radius: var(--radius-sm);
+  cursor: zoom-in;
+  display: block;
+  height: auto;
+  max-width: 100%;
+}
+
+.screenshots,
+.requirements {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 1.25rem;
+}
+
+.screenshots h2,
+.requirements h2,
+.requirements h3 {
+  color: var(--text);
+  margin: 0;
+}
+
+.screenshots h2,
+.requirements h2 {
+  font-size: 0.9rem;
+}
+
+.screenshotGrid {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+.screenshotGrid button {
+  background: none;
+  border: 0;
+  cursor: zoom-in;
+  padding: 0;
+}
+
+.screenshotGrid button:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.screenshotGrid img {
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-sm);
+  height: auto;
+  object-fit: cover;
+  width: 100%;
+}
+
+.imageViewer {
+  align-items: center;
+  background: rgba(71, 85, 105, 0.94);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: var(--layout-gutter);
+  position: fixed;
+  z-index: var(--z-modal);
+}
+
+.imageViewerContent {
+  max-height: 100%;
+  max-width: min(1100px, 100%);
+  position: relative;
+}
+
+.imageViewerContent img {
+  display: block;
+  max-height: calc(100vh - (var(--layout-gutter) * 2));
+  max-width: 100%;
+  object-fit: contain;
+}
+
+.imageViewerClose {
+  align-items: center;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  color: var(--text);
+  cursor: pointer;
+  display: inline-flex;
+  height: 44px;
+  justify-content: center;
+  position: absolute;
+  right: 0.5rem;
+  top: 0.5rem;
+  width: 44px;
+}
+
+.imageViewerNav {
+  align-items: center;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  color: var(--text);
+  cursor: pointer;
+  display: inline-flex;
+  height: 44px;
+  justify-content: center;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+}
+
+.imageViewerPrev {
+  left: 0.5rem;
+}
+
+.imageViewerNext {
+  right: 0.5rem;
+}
+
+.imageViewerClose:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.imageViewerNav:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.requirements > div {
+  background: var(--bg-page);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem;
+}
+
+.requirements h3 {
+  color: var(--primary);
+  font-size: 0.78rem;
+  margin-bottom: 0.35rem;
+}
+
+.requirements p {
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  line-height: 1.55;
+  margin: 0;
+  white-space: pre-line;
 }
 
 /* ─── Sidebar Cards ─────────────────────────────────────────── */

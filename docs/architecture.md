@@ -105,8 +105,10 @@ The preview Worker improves on this:
 Steam store endpoints have no CORS headers, so browser calls need a proxy. The
 client (`src/shared/api/steam-api.ts`) keeps an ordered proxy base list:
 
-1. Same-origin Worker route `/proxy/steam/` (primary; overridable with
-   `VITE_STEAM_PROXY_BASE`),
+1. Same-origin Worker route `/proxy/steam/` (primary). To override it with
+   `VITE_STEAM_PROXY_BASE`, also set `VITE_STEAM_PROXY_MODE=path` for another
+   Worker-style path-forwarding proxy; omit the mode for a legacy full-URL CORS
+   proxy.
 2. Legacy third-party CORS proxy `https://cors.mefi.workers.dev/` (fallback).
 
 On network-level failure of a whole proxy the client advances to the next base
