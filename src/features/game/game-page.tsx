@@ -1,6 +1,6 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEffect } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { useLanguage } from '@/app/providers/language-provider';
 import { useRequiredIgrsData } from '@/app/providers/data-provider';
 import { usePageTitle } from '@/shared/hooks/use-page-title';
@@ -17,7 +17,6 @@ export function GamePage() {
   const { id } = useParams<{ id: string }>();
   const { lang, t, unlocked } = useLanguage();
   const { data, error, loading, ensureData } = useRequiredIgrsData();
-  const navigate = useNavigate();
 
   // Shared lazy Steam API facade: one instance (and one match cache) is reused
   // across routes, so matches resolved here are peekable from search cards (#29).
@@ -85,15 +84,6 @@ export function GamePage() {
     );
   }
 
-  const handleBack = () => {
-    // If user arrived directly (shared link), go to search instead of exiting the app
-    if (window.history.length <= 2) {
-      navigate('/search/', { replace: true });
-    } else {
-      navigate(-1);
-    }
-  };
-
   // Navigate by position in the dataset, not id arithmetic — game ids are not contiguous.
   const gameIndex = data.games.findIndex(g => g.id === game.id);
   const prevGame = gameIndex > 0 ? data.games[gameIndex - 1] : null;
@@ -109,19 +99,15 @@ export function GamePage() {
               <ChevronLeft className={styles.icon} aria-hidden="true" />
               <span>{t('detail.prevGame')}</span>
             </Link>
-          ) : <span className={styles.navButton} />}
+          ) : null}
           {nextGame ? (
             <Link className={styles.navButton} to={`/game/${nextGame.id}`} aria-label={t('detail.nextGame')}>
               <span>{t('detail.nextGame')}</span>
               <ChevronRight className={styles.icon} aria-hidden="true" />
             </Link>
-          ) : <span className={styles.navButton} />}
+          ) : null}
         </div>
       </nav>
-      <button className={styles.backButton} type="button" onClick={handleBack}>
-        <ChevronLeft className={styles.icon} aria-hidden="true" />
-        {t('detail.back')}
-      </button>
       <GameDetailView allGames={data.games} game={game} lang={lang} meta={data.meta} steamMatch={steamMatch} t={t} unlocked={unlocked} />
     </main>
   );
