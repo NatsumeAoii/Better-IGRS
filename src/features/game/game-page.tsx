@@ -93,20 +93,22 @@ export function GamePage() {
     <main className={styles.pageContainer} data-route-ready="game">
       <nav className={styles.navRow}>
         <Link to="/search/" className={styles.breadcrumb}>{t('detail.backToSearch')}</Link>
-        <div className={styles.navButtons}>
-          {prevGame ? (
-            <Link className={styles.navButton} to={`/game/${prevGame.id}`} aria-label={t('detail.prevGame')}>
-              <ChevronLeft className={styles.icon} aria-hidden="true" />
-              <span>{t('detail.prevGame')}</span>
-            </Link>
-          ) : null}
-          {nextGame ? (
-            <Link className={styles.navButton} to={`/game/${nextGame.id}`} aria-label={t('detail.nextGame')}>
-              <span>{t('detail.nextGame')}</span>
-              <ChevronRight className={styles.icon} aria-hidden="true" />
-            </Link>
-          ) : null}
-        </div>
+        {prevGame || nextGame ? (
+          <div className={styles.navButtons}>
+            {prevGame ? (
+              <Link className={styles.navButton} to={`/game/${prevGame.id}`} aria-label={t('detail.prevGame')}>
+                <ChevronLeft className={styles.icon} aria-hidden="true" />
+                <span>{t('detail.prevGame')}</span>
+              </Link>
+            ) : null}
+            {nextGame ? (
+              <Link className={styles.navButton} to={`/game/${nextGame.id}`} aria-label={t('detail.nextGame')}>
+                <span>{t('detail.nextGame')}</span>
+                <ChevronRight className={styles.icon} aria-hidden="true" />
+              </Link>
+            ) : null}
+          </div>
+        ) : null}
       </nav>
       <GameDetailView allGames={data.games} game={game} lang={lang} meta={data.meta} steamMatch={steamMatch} t={t} unlocked={unlocked} />
     </main>
