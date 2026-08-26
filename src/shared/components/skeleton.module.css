@@ -48,6 +48,30 @@
   box-shadow: var(--shadow, none);
 }
 
+/* ─── GameCardSkeleton layout ─────────────────────────────── */
+
+.gameCard {
+  padding: var(--card-padding);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.gameCardTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.gameCardMeta {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+
 .detailHeader {
   display: flex;
   align-items: flex-start;

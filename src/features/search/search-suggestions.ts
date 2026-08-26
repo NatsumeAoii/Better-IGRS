@@ -38,14 +38,17 @@ interface CandidateRemoval {
 }
 
 /**
- * Computes the best suggestion for a zero-results search state.
- *
- * Strategy:
- * 1. If filters are active, evaluate removing each one individually.
- *    Suggest the filter whose removal yields the highest result count.
- *    Tie-break by most recently applied (last in filterOrder).
+ * Computes a suggestion for improving zero-result searches.
+ * 
+ * Algorithm (priority order):
+ * 1. Try removing each active filter individually — suggest the one that yields the most results.
  * 2. If no single filter removal helps, suggest clearing all filters.
- * 3. If no filters are active, suggest clearing the query.
+ * 3. If no filters are active, suggest clearing the search query.
+ * 
+ * @param index - The search index to evaluate against
+ * @param state - Current filter/query state
+ * @param filterOrder - Ordered list of active filters for tie-breaking
+ * @returns A suggestion with action type and message, or null if no improvement is possible
  */
 export function computeSuggestion(
   index: SearchIndex,

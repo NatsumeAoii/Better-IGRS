@@ -29,6 +29,7 @@ export function MobileNav({ isOpen, onClose, onOpen }: MobileNavProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const wasOpenRef = useRef(false);
 
   // Close panel on route change
   useEffect(() => {
@@ -40,8 +41,10 @@ export function MobileNav({ isOpen, onClose, onOpen }: MobileNavProps) {
   useEffect(() => {
     if (isOpen) {
       closeButtonRef.current?.focus();
-    } else {
+      wasOpenRef.current = true;
+    } else if (wasOpenRef.current) {
       triggerRef.current?.focus();
+      wasOpenRef.current = false;
     }
   }, [isOpen]);
 
@@ -117,7 +120,7 @@ export function MobileNav({ isOpen, onClose, onOpen }: MobileNavProps) {
         ref={triggerRef}
         className="mobile-nav-trigger"
         type="button"
-        aria-label="Open navigation menu"
+        aria-label={t('mobile.menu')}
         aria-expanded={isOpen}
         aria-controls="mobile-nav-panel"
         onClick={onOpen}
@@ -141,16 +144,17 @@ export function MobileNav({ isOpen, onClose, onOpen }: MobileNavProps) {
         className={`mobile-nav-panel${isOpen ? ' mobile-nav-panel--open' : ''}`}
         role="dialog"
         aria-modal="true"
-        aria-label="Navigation menu"
+        aria-label={t('mobile.menu')}
         aria-hidden={!isOpen}
+        {...(!isOpen ? { inert: true } : {})}
       >
         <div className="mobile-nav-header">
-          <span className="mobile-nav-title">Menu</span>
+          <span className="mobile-nav-title">{t('mobile.menu')}</span>
           <button
             ref={closeButtonRef}
             className="mobile-nav-close"
             type="button"
-            aria-label="Close navigation menu"
+            aria-label={t('changelog.close')}
             onClick={onClose}
           >
             <X className="ui-icon" aria-hidden="true" />
@@ -176,18 +180,18 @@ export function MobileNav({ isOpen, onClose, onOpen }: MobileNavProps) {
           <button
             className="mobile-nav-toggle-btn"
             type="button"
-            aria-label="Toggle theme"
+            aria-label={t('app.themeToggle')}
             onClick={toggleTheme}
           >
             {resolvedTheme === 'dark'
               ? <Sun className="ui-icon" aria-hidden="true" />
               : <Moon className="ui-icon" aria-hidden="true" />}
-            <span>{resolvedTheme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
+            <span>{resolvedTheme === 'dark' ? t('mobile.lightMode') : t('mobile.darkMode')}</span>
           </button>
           <button
             className="mobile-nav-toggle-btn"
             type="button"
-            aria-label="Switch language"
+            aria-label={t('app.langSwitch')}
             onClick={toggleLanguage}
           >
             <Globe className="ui-icon" aria-hidden="true" />

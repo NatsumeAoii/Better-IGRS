@@ -7,20 +7,22 @@ export function readLocalStorage(key: string): string | null {
   }
 }
 
-export function writeLocalStorage(key: string, value: string): void {
-  if (typeof window === 'undefined') return;
+export function writeLocalStorage(key: string, value: string): boolean {
+  if (typeof window === 'undefined') return false;
   try {
     window.localStorage.setItem(key, value);
+    return true;
   } catch {
-    // Storage can be blocked by browser/privacy settings; preferences still work in memory.
+    return false;
   }
 }
 
-export function removeLocalStorage(key: string): void {
-  if (typeof window === 'undefined') return;
+export function removeLocalStorage(key: string): boolean {
+  if (typeof window === 'undefined') return false;
   try {
     window.localStorage.removeItem(key);
+    return true;
   } catch {
-    // Storage can be blocked by browser/privacy settings; in-memory state is already updated.
+    return false;
   }
 }

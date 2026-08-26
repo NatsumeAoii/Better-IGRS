@@ -11,6 +11,7 @@ interface BuildSearchResultsModelInput {
   publisher: string;
   query: string;
   ratings: Set<number>;
+  resultsPerPage?: number;
   searchIndex: SearchIndex | null;
   sort: SearchSort;
   years: Set<string>;
@@ -40,11 +41,14 @@ export function buildSearchResultsModel({
   publisher,
   query,
   ratings,
+  resultsPerPage,
   searchIndex,
   sort,
   years,
 }: BuildSearchResultsModelInput): SearchResultsModel {
   if (!searchIndex || !meta) return EMPTY_RESULTS_MODEL;
+
+  const perPage = resultsPerPage && resultsPerPage > 0 ? resultsPerPage : SEARCH_RESULTS_PER_PAGE;
 
   const filtered = filterIndexedGames(searchIndex.items, {
     descriptors,
@@ -57,11 +61,11 @@ export function buildSearchResultsModel({
 
   sortFilterResults(filtered, sort, ratingId => ratingWeight(meta, ratingId));
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / SEARCH_RESULTS_PER_PAGE));
+  const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
   const currentPage = Math.min(page, totalPages);
   const visibleResults = filtered.slice(
-    (currentPage - 1) * SEARCH_RESULTS_PER_PAGE,
-    currentPage * SEARCH_RESULTS_PER_PAGE
+    (currentPage - 1) * perPage,
+    currentPage * perPage
   );
 
   return {

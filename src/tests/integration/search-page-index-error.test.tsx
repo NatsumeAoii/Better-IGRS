@@ -46,6 +46,7 @@ const mocks = vi.hoisted(() => {
       items: [
         {
           game: games[0],
+          descNorm: 'alpha game',
           descriptorIds: [3],
           descriptorIdSet: new Set([3]),
           nameNorm: 'alpha game',
@@ -110,7 +111,7 @@ describe('SearchPage index error handling', () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByRole('button', { name: /Alpha Game/ })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Alpha Game/ })).toBeInTheDocument();
 
     mocks.indexError = new Error('Search index failed');
 

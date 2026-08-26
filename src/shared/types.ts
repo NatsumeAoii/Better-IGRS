@@ -86,6 +86,7 @@ export interface SearchIndexItem {
   game: IgrsGame;
   nameNorm: string;
   publisherNorm: string;
+  descNorm: string;
   ratingIds: number[];
   descriptorIds: number[];
   platformIds: number[];

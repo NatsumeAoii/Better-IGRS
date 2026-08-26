@@ -1,190 +1,160 @@
 # Architecture
 
-This document describes the system architecture of the IGRS (Indonesian Game Rating System) web application — an unofficial frontend for browsing and searching the IGRS public database.
+Better-IGRS is a static single-page application (Vite 8, React 19, TypeScript) that
+publishes an unofficial browsable snapshot of the Indonesian Game Rating System
+(IGRS) registry. There is no application backend: all game data ships as JSON
+files next to the app, search runs client-side in a Web Worker, and two small
+Cloudflare Workers cover the gaps that pure static hosting cannot.
 
-## System Components
+## System overview
 
-| Component | Technology | Purpose |
-|---|---|---|
-| **SPA** | Vite 8 + React 19 + TypeScript 6 | Client-side application: search, browse, and display game rating data |
-| **GitHub Pages** | Static hosting | Serves the built SPA, JSON data files, and static assets |
-| **Cloudflare Worker** | TypeScript on Cloudflare edge | Intercepts bot requests to `/game/*` and serves social media preview pages |
-| **GitHub Actions** | CI/CD workflows | Builds the app, refreshes game data from the IGRS API, and deploys to Pages |
-
-## Data Flow
-
-```mermaid
-flowchart LR
-    subgraph IGRS["IGRS Public API"]
-        API["api.igrs.id"]
-    end
-
-    subgraph GHA["GitHub Actions (daily cron)"]
-        FETCH["Fetch games, ratings,\ndescriptors"]
-        TRANSFORM["Normalize & split\ninto JSON files"]
-        COMMIT["Commit to gh-pages branch"]
-    end
-
-    subgraph GHP["GitHub Pages"]
-        HTML["index.html"]
-        JS["Hashed JS/CSS bundles"]
-        DATA["JSON data files\n(igrs.games.json,\nigrs.meta.json)"]
-        IMAGES["Rating & descriptor images"]
-    end
-
-    subgraph CF["Cloudflare Edge"]
-        WORKER["Preview Worker"]
-    end
-
-    subgraph BROWSER["User's Browser"]
-        SPA["React SPA"]
-        WORKER_THREAD["Web Worker\n(search index)"]
-    end
-
-    API -->|"parallel fetch\n(batched, 15 concurrent)"| FETCH
-    FETCH --> TRANSFORM
-    TRANSFORM --> COMMIT
-    COMMIT -->|"triggers Pages deploy"| GHP
-
-    HTML -->|"initial load"| SPA
-    JS -->|"code-split chunks"| SPA
-    DATA -->|"fetch + SWR cache"| SPA
-    SPA -->|"posts game array"| WORKER_THREAD
-    WORKER_THREAD -->|"returns search index"| SPA
-
-    WORKER -->|"fetches game data\nfor preview rendering"| DATA
-
-    subgraph SOCIAL["Social Platforms"]
-        BOT["Discord, Slack,\nTelegram, Twitter bots"]
-    end
-
-    BOT -->|"GET /game/{id}"| WORKER
-    WORKER -->|"HTML with OG meta tags"| BOT
+```text
+┌─────────────────────┐       ┌──────────────────┐
+│  Browser (SPA)      │──────▶│  GitHub Pages    │
+│  Vite + React + TS  │ fetch │  Static artifact │
+│  Web Worker (search)│       │  HTML/JS/CSS/JSON│
+│  Service Worker     │       └──────────────────┘
+└─────────┬───────────▲                ▲
+          │           └────────────────┘
+          │ /proxy/steam/*            │ /game/:id
+          ▼                           │
+┌─────────────────────────────────────────────────┐
+│  Cloudflare Worker (ops/worker)                 │
+│  - /game/:id   social-bot previews + SPA shell  │
+│  - /proxy/steam/*  allowlisted Steam API proxy  │
+└───────────────────┬─────────────────────────────┘
+                    │ GET https://store.steampowered.com (allowlisted)
+                    ▼
 ```
 
-### Data Flow Summary
+## Deployment topology
 
-1. **Data ingestion**: A scheduled GitHub Actions workflow (`update-igrs-db.yml`) fetches all games from the IGRS public API in parallel batches, downloads ratings and descriptor metadata, normalizes the data with `jq`, and commits the resulting JSON files to the repository.
+Two independent deploy surfaces make up production:
 
-2. **Build and deploy**: On push to `gh-pages`, the Pages workflow installs dependencies, runs checks (lint, test, build), and deploys the `dist/` directory to GitHub Pages.
+1. **SPA — GitHub Pages artifact deploy** (`.github/workflows/pages.yml`).
+   A push to the default branch (`gh-pages`) runs `npm run check`, builds
+   `dist/`, uploads it with `actions/upload-pages-artifact@v5`, and deploys it
+   with `actions/deploy-pages@v5`. Pages serves *either* an uploaded artifact
+   or a branch root, never both — this repo is artifact-mode only. Root-level
+   copies of build outputs are deliberately absent (and gitignored); the custom
+   domain marker ships as `public/CNAME` so it lands inside `dist/`.
+2. **Worker — Cloudflare** (`ops/worker`, deployed separately via Wrangler).
+   Routes `igrs.madeby.my.id/game/*` and `igrs.madeby.my.id/proxy/steam/*`
+   (plus `staging-igrs.madeby.my.id` equivalents). The Worker is stateless and
+   reads its data from the live site over HTTPS.
 
-3. **Runtime data loading**: The SPA fetches `igrs.games.json` and `igrs.meta.json` from GitHub Pages. A module-level stale-while-revalidate cache serves previously loaded data instantly and revalidates in the background after 5 minutes.
+Because both surfaces serve the same domain, the browser sees one origin: same-origin
+fetches are covered by CSP `connect-src 'self'` with no extra exceptions.
 
-4. **Search indexing**: The game array is posted to a Web Worker that builds the search index off the main thread. Once complete, the index is transferred back and search becomes interactive.
+## Request and data flow
 
-5. **Social previews**: When a bot user-agent requests `/game/{id}`, the Cloudflare Worker intercepts the request, fetches game data from GitHub Pages, and returns an HTML page with Open Graph and Twitter Card meta tags. Normal browsers receive a 302 redirect to the SPA.
+### First load
 
-## Deployment Topology
+1. GitHub Pages serves one of five HTML entries (`index.html`, `404.html`,
+   `ratings/index.html`, `search/index.html`, `steamchecker/index.html`) — see
+   "Multiple HTML entries" below.
+2. Hashed JS/CSS chunks load (`Cache-Control: public, max-age=31536000,
+   immutable` policy), React mounts, and the data provider fetches:
+   - `/assets/data/json/igrs.meta.json` — ratings/descriptors/platforms metadata
+   - `/assets/data/json/igrs.games.json` — game entries (~600 rows)
+   - `/assets/data/json/steam.meta.json` — Steam descriptor mapping tables
+   - `/assets/data/json/igrs.extra.json` — optional media URLs (loaded on demand)
+3. Payloads are validated at the boundary with valibot before entering app
+   state; invalid data fails into the existing error states rather than
+   rendering unvalidated content.
+4. `src/core/search-index.worker.ts` builds an in-memory normalized index
+   (pre-normalized strings, Set-based O(1) filter checks, fuzzy matching,
+   faceted counts).
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                     Cloudflare (CDN + DNS)                   │
-│                                                             │
-│  ┌───────────────────────┐    ┌──────────────────────────┐  │
-│  │   Cache Rules          │    │   Worker (edge)          │  │
-│  │   • Hashed assets: 1yr │    │   • Route: /game/*       │  │
-│  │   • HTML: no-cache     │    │   • Bot → preview HTML   │  │
-│  │   • JSON data: 1hr     │    │   • Browser → 302 to SPA │  │
-│  └───────────┬───────────┘    └──────────┬───────────────┘  │
-│              │                            │                   │
-└──────────────┼────────────────────────────┼──────────────────┘
-               │                            │
-               ▼                            ▼
-┌──────────────────────────┐    ┌──────────────────────────┐
-│   GitHub Pages            │    │   GitHub Pages            │
-│   (igrs.madeby.my.id)     │    │   (JSON data source)      │
-│                           │    │                           │
-│   • index.html            │    │   • igrs.games.json       │
-│   • vendor-[hash].js      │    │   • igrs.meta.json        │
-│   • app-[hash].js         │    │   • igrs.extra.json       │
-│   • route chunks (lazy)   │    │                           │
-│   • CSS modules           │    │                           │
-│   • Static images         │    │                           │
-└──────────────────────────┘    └──────────────────────────┘
-```
+### Offline behavior
 
-**Domain**: `igrs.madeby.my.id` — custom domain on the `madeby.my.id` Cloudflare zone.
+A hand-rolled service worker (`public/sw.js`, no dependency) keeps the app
+usable offline:
 
-**Environments**:
-- **Production**: Worker deployed as `igayrsbackend`, route pattern `igrs.madeby.my.id/game/*`
-- **Staging**: Worker deployed as `igayrsbackend-staging`, route pattern `staging-igrs.madeby.my.id/game/*`
+| Request kind | Strategy |
+| --- | --- |
+| Navigations (HTML) | Network-first → last-good cached HTML of same path → cached `404.html` shell |
+| Content-hashed assets | Cache-first (immutable by filename) |
+| Unhashed mutable assets (e.g. `theme-init.js`) | Stale-while-revalidate |
+| `/assets/data/json/*`, `/assets/i18n/*` | Stale-while-revalidate (fresh daily data still works offline) |
+| `/proxy/steam/*`, cross-origin, non-GET | Bypassed entirely — Steam Checker keeps its own online error UX |
 
-## Cloudflare Worker Role
+An offline banner (`src/shared/components/offline-banner.tsx`) appears while
+`navigator.onLine` is false. Registration in `src/main.tsx` is PROD-gated,
+feature-detected, and failure-tolerant; removing the registration reverts the
+feature, and setting the SW's `VERSION` to `'off'` makes already-installed
+workers unregister themselves on next visit.
 
-The Cloudflare Worker (`ops/worker/worker.ts`) solves a fundamental limitation of SPAs: social media bots do not execute JavaScript, so they cannot read the dynamically rendered game detail pages.
+### Game detail deep links (`/game/:id`)
 
-**How it works:**
+GitHub Pages cannot rewrite arbitrary paths to the SPA, so unknown paths fall
+back to `404.html`, which is a full copy of the app entry using root-absolute
+asset URLs (Vite `experimental.renderBuiltUrl` override for that entry only).
+The preview Worker improves on this:
 
-1. The Worker is configured (via `wrangler.toml`) to intercept all requests matching `/game/*` on the production domain.
-2. It inspects the `User-Agent` header to determine if the request comes from a known bot (Discord, Slack, Telegram, Twitter, Facebook, etc.).
-3. **Bot requests** receive a server-rendered HTML page containing:
-   - Open Graph meta tags (`og:title`, `og:description`, `og:image`)
-   - Twitter Card meta tags
-   - An oEmbed link for rich embed consumers
-   - A `<script>` redirect to the SPA (for bots that follow redirects)
-4. **Normal browser requests** receive a 302 redirect to the SPA game detail page.
-5. The `/game/{id}/oembed` path returns oEmbed JSON for platforms that support it.
+- **Social bots** get server-rendered HTML with Open Graph/oEmbed metadata built
+  from the same public JSON files (cached 300 s in module scope, escaped output).
+- **Browsers** get the origin's `404.html` re-served with status 200 plus strict
+  security headers (`script-src 'self'`, `frame-ancestors 'none'`,
+  `X-Frame-Options: DENY`), so React renders the game page directly without a
+  redirect loop. If the shell fetch fails, the Worker falls back to a legacy
+  `/search/#id` redirect.
 
-**Data caching**: The Worker maintains a module-level cache of game data (5-minute TTL) fetched from GitHub Pages, avoiding repeated fetches for each preview request.
+### Steam Checker proxy chain
 
-**Security**: HTML responses include CSP headers (`default-src 'none'`, restricted `img-src`, `frame-ancestors 'none'`), `X-Content-Type-Options: nosniff`, and `X-Frame-Options: DENY`.
+Steam store endpoints have no CORS headers, so browser calls need a proxy. The
+client (`src/shared/api/steam-api.ts`) keeps an ordered proxy base list:
 
-## Key Architectural Decisions
+1. Same-origin Worker route `/proxy/steam/` (primary; overridable with
+   `VITE_STEAM_PROXY_BASE`),
+2. Legacy third-party CORS proxy `https://cors.mefi.workers.dev/` (fallback).
 
-### CSS Modules over CSS-in-JS
+On network-level failure of a whole proxy the client advances to the next base
+with its per-base retry budget, capped at four total attempts; user aborts
+always propagate immediately. Cache keys stay query/appId-based regardless of
+which proxy served the result.
 
-Vite's built-in CSS Modules with LightningCSS provide zero-runtime style scoping. No additional runtime dependencies, no JavaScript overhead for style computation, and full compatibility with the existing build pipeline.
+The Worker's `/proxy/steam/*` handler is **not** an open relay:
 
-### Web Worker for Search Indexing
+- Upstream host is hardcoded to `https://store.steampowered.com`.
+- Only paths matching `^/(api|appreviews)/` pass — exactly the prefixes the
+  checker produces (`/api/storesearch`, `/api/appdetails`, `/appreviews/{id}`);
+  dot-segments, encoded traversal, backslashes, and malformed escapes are rejected.
+- GET-only (405 otherwise); query string forwarded verbatim; responses are
+  JSON-only with `nosniff`; upstream failures map to a generic no-store 502.
+- Server-side Cache API with `max-age=300` absorbs repeat lookups and respects
+  Steam rate limits; clients receive `max-age=60`.
 
-Building the search index for the current 593-game checked-in snapshot is an O(n) operation, and future data growth can make that work visible on the main thread. Offloading to a Web Worker keeps the UI responsive during initial load. The index is transferred back via structured clone (Sets serialized as arrays, reconstructed on the main thread).
+## Data pipeline contract
 
-### Stale-While-Revalidate (Custom Module)
+`.github/workflows/update-igrs-db.yml` refreshes the dataset daily from the
+IGRS public API and commits three files to `public/assets/data/json/`
+(see workflow header comments for the full transformation spec):
 
-A lightweight module-level cache avoids adding TanStack Query as a dependency for a single data source. The implementation serves cached data immediately and revalidates in the background after 5 minutes, providing instant page loads on return visits.
+| File | Shape |
+| --- | --- |
+| `igrs.games.json` | `[{ id, name, releaseYear, publisherName, description?, ratings: number[], descriptors: number[], platforms: number[] }]` sorted newest-first |
+| `igrs.meta.json` | `{ meta: { generatedAt, totalGames }, ratings, descriptors, platforms }` keyed by string ID |
+| `igrs.extra.json` | `[{ id, videoUrl?, inGameUrl? }]` — only entries with at least one URL |
 
-### Virtual Scrolling with @tanstack/react-virtual
+Integrity gates: refreshed data must pass `npm test`, and the game count may not
+drop more than 10% versus the previous commit. Failures open an issue
+automatically. Data changes propagate to users through the daily push → Pages
+build; the service worker's stale-while-revalidate keeps previously seen data
+available offline while refreshing in the background.
 
-For result sets exceeding 100 items, virtual scrolling renders only visible items plus a 5-item overscan buffer. This maintains smooth 30+ FPS scrolling regardless of total result count. Below 100 items, traditional pagination (30/page) is used for simplicity.
+## Key decisions (encoded elsewhere in comments)
 
-### Route-Level Code Splitting
-
-`React.lazy()` splits RatingsPage, SteamCheckerPage, and GamePage into separate chunks. Users only download code for pages they visit. Each lazy route has its own error boundary with retry capability.
-
-### Vendor Chunk Separation
-
-React, React DOM, React Router, Lucide React, and Valibot are grouped into a dedicated `vendor-[hash].js` chunk. Application code changes do not invalidate the vendor cache, reducing repeat-visit download sizes.
-
-## Bundle Strategy
-
-| Chunk | Contents | Cache Strategy |
-|---|---|---|
-| `vendor-[hash].js` | react, react-dom, react-router-dom, lucide-react, valibot | Immutable (1 year) |
-| `app-[hash].js` | Core app shell, router, providers | Immutable (1 year) |
-| Route chunks (lazy) | Per-page code (search, ratings, steam-checker, game) | Immutable (1 year) |
-| `*.module.css` | Feature-scoped styles | Immutable (1 year) |
-| `global-[hash].css` | Reset, tokens, typography | Immutable (1 year) |
-| `igrs.games.json` | Game data (current snapshot: 593 entries) | 1 hour + stale-while-revalidate |
-| `igrs.meta.json` | Ratings and descriptor metadata | 1 hour + stale-while-revalidate |
-| `i18n/*.json` | Translation dictionaries (en, id) | 1 hour + stale-while-revalidate |
-
-## CI/CD Pipelines
-
-| Workflow | Trigger | Purpose |
-|---|---|---|
-| `ci.yml` | Push to main, PRs | Lint, typecheck, test (Node 18 + 22 matrix), build, bundle size check |
-| `pages.yml` | Push to gh-pages | Build and deploy to GitHub Pages |
-| `update-igrs-db.yml` | Daily cron (00:00 UTC) | Fetch fresh data from IGRS API, validate integrity, commit to repo |
-
-## Technology Stack
-
-- **Runtime**: Vite 8, React 19, TypeScript 6
-- **Styling**: CSS Modules (LightningCSS), CSS custom properties for design tokens
-- **Routing**: React Router DOM 7 (BrowserRouter)
-- **Validation**: Valibot
-- **Icons**: Lucide React
-- **Virtualization**: @tanstack/react-virtual
-- **Sanitization**: DOMPurify
-- **Testing**: Vitest, fast-check (property-based), Testing Library
-- **Worker runtime**: Cloudflare Workers (Wrangler CLI)
-- **Hosting**: GitHub Pages + Cloudflare CDN
+- **Multiple HTML entries** — each routable path has a real HTML file so GitHub
+  Pages serves deep links directly with no server-side rewriting
+  (`config/vite.config.ts` rollup inputs; rationale also in README Q&A).
+- **Root-absolute assets for `404.html` only** — the fallback shell can be
+  served at any depth, so relative asset URLs would break there;
+  `experimental.renderBuiltUrl` scopes this to that single entry.
+- **Worker SPA-shell pass-through instead of redirect** — browsers land on the
+  real URL with a 200 and full headers; bots get rich previews; the loop risk
+  is avoided because the shell is fetched from a non-routed path.
+- **Hand-rolled service worker** — ~150 lines with no dependency; if strategies
+  grow beyond the table above, adopt Workbox or the Vite PWA plugin.
+- **Artifact-only Pages deploy** — branch-root sync tooling was removed; the
+  deployed artifact is the single source of truth.

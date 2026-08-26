@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import cardStyles from './game-card.module.css';
 
@@ -19,10 +20,21 @@ interface SearchPaginationProps {
 }
 
 export function SearchPagination({ currentPage, totalPages, setPage, t }: SearchPaginationProps) {
-  if (totalPages <= 1) return <nav className={cardStyles.pagination} aria-label="Page navigation" />;
+  const [jumpValue, setJumpValue] = useState('');
+  const handleJump = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      const page = parseInt(jumpValue, 10);
+      if (!Number.isNaN(page) && page >= 1 && page <= totalPages) {
+        setPage(page);
+        setJumpValue('');
+      }
+    }
+  };
+
+  if (totalPages <= 1) return <nav className={cardStyles.pagination} aria-label={t('page.navLabel')} />;
 
   return (
-    <nav className={cardStyles.pagination} aria-label="Page navigation">
+    <nav className={cardStyles.pagination} aria-label={t('page.navLabel')}>
       <div className={cardStyles.paginationStatus}>{t('page.status').replace('{page}', String(currentPage)).replace('{total}', String(totalPages))}</div>
       <div className={cardStyles.paginationControls}>
         <button className={cardStyles.pageBtn} type="button" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)}>
@@ -44,6 +56,19 @@ export function SearchPagination({ currentPage, totalPages, setPage, t }: Search
           <span>{t('page.next')}</span>
           <ChevronRight className="ui-icon" aria-hidden="true" />
         </button>
+      </div>
+      <div className={cardStyles.pageJumpRow}>
+        <label className={cardStyles.pageJumpLabel} htmlFor="page-jump-input">{t('page.jump')}</label>
+        <input
+          id="page-jump-input"
+          type="number"
+          min={1}
+          max={totalPages}
+          className={cardStyles.pageJumpInput}
+          value={jumpValue}
+          onChange={e => setJumpValue(e.target.value)}
+          onKeyDown={handleJump}
+        />
       </div>
     </nav>
   );

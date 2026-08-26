@@ -47,7 +47,7 @@ export function steamRatingToIgrsId(steamRating: SteamRatingPayload | null | und
   if (rating === 'BANNED' || parseSteamRatingFlag(steamRating?.banned)) return 35;
 
   const byRating: Record<string, number> = {
-    '0': 7, '3': 7, '3+': 7,
+    '0': 7, // Steam rating 0 maps to IGRS 7 (Everyone) — same as rating 3. This is a quirk of the IGRS API response format. '3': 7, '3+': 7,
     '7': 4, '7+': 4,
     '13': 5, '13+': 5,
     '15': 28, '15+': 28,
@@ -168,7 +168,7 @@ export function buildSteamRatingComparison(input: SteamRatingComparisonInput): S
   return { descriptorStatus, missingFromSteamDescriptorIds, ratingStatus, unexpectedSteamDescriptorIds };
 }
 
-export function steamIgrsDescriptorIdsFromText(meta: IgrsMeta, text: unknown, lang: Language): number[] {
+export function matchDescriptorNamesInText(meta: IgrsMeta, text: unknown, lang: Language): number[] {
   if (!text || !meta.descriptors) return [];
   const lines = String(text)
     .split(/\r?\n/g)

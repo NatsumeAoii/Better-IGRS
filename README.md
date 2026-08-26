@@ -1,6 +1,6 @@
-# IGRSDB
+# Better-IGRS
 
-IGRSDB is an unofficial, static web interface for browsing game entries from the Indonesian Game Rating System registry. Built with Vite 8, React 19, and TypeScript 6, it provides a searchable database from the current 593-game checked-in data snapshot, a ratings guide, content descriptor explanations, and a Steam checker that compares Steam metadata with IGRS records.
+Better-IGRS is an unofficial, static web interface for browsing game entries from the Indonesian Game Rating System registry. Built with Vite 8, React 19, and TypeScript 6, it provides a searchable database from the current 500+ game checked-in data snapshot, a ratings guide, content descriptor explanations, and a Steam checker that compares Steam metadata with IGRS records. A service worker adds offline support for previously visited pages and cached data, plus installable-PWA behavior via the web manifest.
 
 ## Prerequisites
 
@@ -32,7 +32,6 @@ Open the printed local URL (usually `http://127.0.0.1:5173/`).
 | Full check | `npm run check` | Runs syntax checks, structure checks, lint, tests, and production build — use before PRs. |
 | Visual check | `npm run visual:check` | Starts a temporary Vite server and runs responsive browser checks across viewports. |
 | Static serve | `npm run serve:static` | Serves `dist/` with the local Node static server for manual testing. |
-| Pages build | `npm run build:pages-root` | Builds and syncs branch-root Pages files for branch-source publishing. |
 
 ## Folder Structure
 
@@ -40,10 +39,10 @@ Open the printed local URL (usually `http://127.0.0.1:5173/`).
 .github/          GitHub Actions workflows (CI, Pages deploy, data refresh)
 artifacts/        Generated reports (bundle analysis, visual compat) — gitignored
 config/           Build configuration (Vite, TypeScript, ESLint, bundle-size thresholds)
-docs/             Project documentation (architecture, bundle analysis, image optimization, cache strategy)
+docs/             Project documentation
 ops/              Operational code — deployment scripts and Cloudflare Worker
   ops/scripts/    Node utilities for static serving, WebP conversion, visual checks
-  ops/worker/     Cloudflare Worker for social media previews and oEmbed
+  ops/worker/     Cloudflare Worker for social previews, oEmbed, and the same-origin Steam proxy
 public/           Static assets served at stable URLs (JSON data, images, icons)
 scripts/          CI helper scripts (bundle size checking)
 src/              Application source code
@@ -57,35 +56,37 @@ src/              Application source code
 
 ## Architecture Overview
 
-IGRSDB is a single-page application deployed as static files to GitHub Pages. The Vite + React SPA fetches game data from co-hosted JSON files at runtime, builds an in-memory search index (via Web Worker), and renders all UI client-side. A Cloudflare Worker intercepts `/game/:id` requests from social media bots and crawlers to serve rich OG/oEmbed preview metadata; normal browsers are redirected to the SPA where React renders the game detail page. The build produces code-split chunks (vendor, per-route lazy chunks, CSS modules) with content hashes for immutable caching.
+Better-IGRS is a single-page application deployed as static files to GitHub Pages (artifact deploy from `dist/`). The Vite + React SPA fetches game data from co-hosted JSON files at runtime, builds an in-memory search index (via Web Worker), and renders all UI client-side. A service worker (`public/sw.js`) keeps visited pages, hashed assets, and data/i18n JSON available offline (network-first HTML, cache-first immutable chunks, stale-while-revalidate data). A Cloudflare Worker serves two route families: `/game/:id` requests from social media bots receive rich OG/oEmbed preview metadata, while normal browsers get the SPA shell re-served with a 200 status so React renders the game detail page directly (a 302 to the legacy hash view is only the origin-failure fallback); `/proxy/steam/*` same-origin-proxies allowlisted Steam store API reads with server-side caching, removing dependence on third-party CORS proxies. The build produces code-split chunks (vendor, per-route lazy chunks, CSS modules) with content hashes for immutable caching.
 
 ```text
 ┌─────────────────────┐       ┌──────────────────┐
 │  Browser (SPA)      │──────▶│  GitHub Pages    │
 │  Vite + React + TS  │ fetch │  Static Assets   │
 │  Web Worker (search)│       │  HTML/JS/CSS/JSON│
-└─────────────────────┘       └──────────────────┘
-                                       ▲
-┌─────────────────────┐                │ fetch game data
+│  Service Worker     │       └──────────────────┘
+└─────────┬───────────┘                ▲
+          │ /proxy/steam/*             │ fetch game data
+┌─────────▼───────────┐                │
 │  Cloudflare Worker  │────────────────┘
 │  Social previews    │
 │  oEmbed responses   │
+│  Steam proxy        │──▶ store.steampowered.com
 └─────────────────────┘
 ```
 
-For full architecture details including data flow, deployment topology, and key decisions, see [docs/architecture.md](./docs/architecture.md).
+Full architecture documentation lives in [docs/architecture.md](./docs/architecture.md).
 
 ## Deployment
 
 The app deploys to GitHub Pages via `.github/workflows/pages.yml`:
 
 1. CI runs the full project check (`npm run check`)
-2. Production build generates `dist/` with hashed assets
+2. Production build generates `dist/` with hashed assets, plus build-time-generated `sitemap.xml`, `rss.xml`, and the copied service worker (`sw.js`), `_headers`, `CNAME`, and manifest
 3. GitHub Actions deploys the `dist/` artifact to Pages
 
-The live site is served at `igrs.madeby.my.id` (configured via `CNAME`).
+The live site is served at `igrs.madeby.my.id` (custom domain via the `public/CNAME` marker shipped into `dist/`).
 
-The Cloudflare Worker (`ops/worker/`) is deployed separately via Wrangler and handles `/game/:id` routes for social media previews. It has a staging environment for pre-production testing.
+The Cloudflare Worker (`ops/worker/`) is deployed separately via Wrangler and handles `/game/:id` preview routes plus the `/proxy/steam/*` same-origin proxy. It has a staging environment for pre-production testing (`wrangler deploy --env staging`).
 
 Hashed assets use `Cache-Control: public, max-age=31536000, immutable`. HTML files use `Cache-Control: no-cache` to ensure fresh content on navigation.
 
@@ -110,7 +111,9 @@ The browser app does not require a `.env` file. Optional settings:
 | --- | --- | --- |
 | `ANALYZE` | `npm run build` | Set to `true` to generate `artifacts/bundle-report.html` |
 | `CHROME_PATH` | `npm run visual:check` | Explicit Chromium/Chrome/Edge executable path |
+| `CF_BEACON_TOKEN` | `npm run build` (Pages CI) | Cloudflare Web Analytics beacon token; when set, the beacon `<script>` is injected into every HTML entry. Leave unset for dev/token-less builds. Enabling also requires allowing `https://static.cloudflareinsights.com` in `script-src` (and `https://cloudflareinsights.com` in `connect-src`) in the deployed CSP. |
 | `SITE_ORIGIN` | Cloudflare Worker | Public site origin (set in `ops/worker/wrangler.toml`) |
+| `VITE_STEAM_PROXY_BASE` | Steam Checker client | Overrides the primary Steam proxy base (defaults to the same-origin `/proxy/steam/` Worker route) |
 
 ## Testing
 
@@ -160,8 +163,7 @@ The script searches common Chromium/Chrome/Edge paths on Windows, macOS, and Lin
 <details><summary><strong>The Steam checker cannot load data</strong></summary>
 
 - Confirm the input is a numeric Steam app ID or a Steam app URL.
-- Confirm network access and that the CORS proxy is reachable.
-- The CORS proxy is configured in `src/shared/api/steam-api.ts`.
+- Confirm network access. Lookups go through the same-origin `/proxy/steam/` Cloudflare Worker route first; if it is unreachable, the client automatically falls back to a third-party CORS proxy (`src/shared/api/steam-api.ts` holds the ordered proxy list).
 
 </details>
 
@@ -199,7 +201,7 @@ The SPA fetches `igrs.games.json` at runtime, posts the array to a Web Worker (`
 
 <details><summary><strong>What is the Cloudflare Worker for?</strong></summary>
 
-Social media bots (Discord, Slack, Telegram, Twitter) do not execute JavaScript. The Worker at `ops/worker/` intercepts `/game/:id` requests from bots and returns server-rendered HTML with Open Graph and oEmbed metadata. Normal browsers get a 302 redirect to the SPA. Deploy with `wrangler deploy` from the `ops/worker/` directory.
+Social media bots (Discord, Slack, Telegram, Twitter) do not execute JavaScript. The Worker at `ops/worker/` intercepts `/game/:id` requests from bots and returns server-rendered HTML with Open Graph and oEmbed metadata. Normal browsers get the SPA shell (fetched from the origin's `/404.html`) re-served with a 200 status so React renders the game detail page directly; if that origin fetch fails, they fall back to a 302 redirect to the legacy hash-based view. The Worker also exposes `/proxy/steam/*`, a strict-allowlist GET-only pass-through to `store.steampowered.com` with server-side caching — this is the Steam Checker's primary data path, with a third-party CORS proxy kept as client-side fallback. Deploy with `wrangler deploy` from the `ops/worker/` directory.
 
 </details>
 
@@ -216,7 +218,7 @@ $env:ANALYZE = "true"
 npm run build
 ```
 
-This produces `artifacts/bundle-report.html` (treemap visualization) via `rollup-plugin-visualizer`. See `docs/bundle-analysis.md` for the latest findings.
+This produces `artifacts/bundle-report.html` (treemap visualization) via `rollup-plugin-visualizer`.
 
 </details>
 
@@ -242,9 +244,9 @@ Configured in `config/bundle-size.json`: JavaScript < 200 KB gzip, CSS < 30 KB g
 
 </details>
 
-<details><summary><strong>Why is the version still 0.0.2?</strong></summary>
+<details><summary><strong>Why is the version 0.0.5?</strong></summary>
 
-The project has not cut a formal release beyond the initial versions. The `package.json` version is `0.0.2`. Changes are tracked in the `[Unreleased]` section of `CHANGELOG.md` and will be promoted to a dated version when the maintainer creates a release.
+The project is pre-1.0 and versions are bumped by the maintainer when meaningful change sets land. The `package.json` version is `0.0.5`; the app UI reads the same value from the latest dated section of `CHANGELOG.md` (detected at build time). Newer changes accumulate under `[Unreleased]` until the next bump.
 
 </details>
 
@@ -262,7 +264,7 @@ This starts `wrangler dev` for local Worker development. The Worker has its own 
 
 <details><summary><strong>Why are there CSS Modules AND global CSS?</strong></summary>
 
-Global CSS (`src/styles/global.css`) handles design tokens, CSS reset, typography, and site-wide layout. CSS Modules (`*.module.css`) handle feature-scoped styles. See the "Styling Strategy" section in `CONTRIBUTING.md` for guidance on when to use each approach.
+Global CSS (`src/styles/global.css`) handles design tokens, CSS reset, typography, and site-wide layout (including the print stylesheet). CSS Modules (`*.module.css`) handle feature-scoped styles. Prefer CSS Modules for new feature styles.
 
 </details>
 
@@ -278,11 +280,6 @@ See [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md) for community participation and e
 - [LICENSE.md](./LICENSE.md) — License (all rights reserved until replaced)
 - [SECURITY.md](./SECURITY.md) — Vulnerability reporting
 - [docs/architecture.md](./docs/architecture.md) — System architecture details
-- [docs/architecture-review.md](./docs/architecture-review.md) — Architecture review findings
-- [docs/bundle-analysis.md](./docs/bundle-analysis.md) — Bundle composition and optimization
-- [docs/image-optimization.md](./docs/image-optimization.md) — WebP conversion and serving pattern
-- [docs/cache-strategy.md](./docs/cache-strategy.md) — Caching approach
-- [docs/performance-review.md](./docs/performance-review.md) — Performance optimization details
 
 ## License
 

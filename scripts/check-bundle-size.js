@@ -78,7 +78,7 @@ function loadConfig() {
 
 function getGzippedSize(filePath) {
   const content = fs.readFileSync(filePath);
-  const gzipped = zlib.gzipSync(content, { level: 9 });
+  const gzipped = zlib.gzipSync(content, { level: 6 });
   return gzipped.length;
 }
 

@@ -1,10 +1,10 @@
 import styles from './skeleton.module.css';
 
 interface SkeletonProps {
-  /** Width of the skeleton element (CSS value) */
-  width?: string;
-  /** Height of the skeleton element (CSS value) */
-  height?: string;
+  /** Width of the skeleton element (CSS value or number in px) */
+  width?: string | number;
+  /** Height of the skeleton element (CSS value or number in px) */
+  height?: string | number;
   /** Optional border-radius override (CSS value) */
   borderRadius?: string;
   /** Additional CSS class name */
@@ -32,13 +32,13 @@ export function Skeleton({ width, height, borderRadius, className }: SkeletonPro
  * release year, platform icons, descriptor icons, and description area.
  * Produces <0.01 CLS when real content replaces the skeleton.
  */
-export function GameDetailSkeleton() {
+export function GameDetailSkeleton({ label }: { label?: string }) {
   return (
     <div
       className={styles.detailCard}
       role="status"
       aria-busy="true"
-      aria-label="Loading game details"
+      aria-label={label || 'Loading game details'}
     >
       {/* Header: title + rating badge */}
       <div className={styles.detailHeader}>
@@ -86,6 +86,23 @@ export function GameDetailSkeleton() {
           <Skeleton width="2rem" height="2rem" borderRadius="4px" />
           <Skeleton width="2rem" height="2rem" borderRadius="4px" />
         </div>
+      </div>
+    </div>
+  );
+}
+
+export function GameCardSkeleton() {
+  return (
+    <div className={styles.gameCard} aria-hidden="true">
+      <div className={styles.gameCardTitle}>
+        <Skeleton width="60%" height="1.2em" />
+      </div>
+      <Skeleton width="40%" height="0.9em" />
+      <div className={styles.gameCardMeta}>
+        <Skeleton width={32} height={32} borderRadius="4px" />
+        <Skeleton width={32} height={32} borderRadius="4px" />
+        <Skeleton width={32} height={32} borderRadius="4px" />
+        <Skeleton width={32} height={32} borderRadius="4px" />
       </div>
     </div>
   );

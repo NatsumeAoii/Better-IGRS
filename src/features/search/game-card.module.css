@@ -23,20 +23,19 @@
   font: inherit;
   content-visibility: auto;
   contain-intrinsic-size: auto 110px;
+  position: relative;
 }
 
 .gameCard:hover {
-  border-color: var(--border-hover);
+  border-color: var(--primary);
   border-inline-start-color: var(--primary);
-  box-shadow: var(--shadow-hover);
-  transform: translateY(-1px);
+  box-shadow: var(--shadow-lift);
+  transform: translateY(-2px);
 }
 
 .gameCard:focus-visible {
-  border-color: var(--primary);
-  border-inline-start-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(97, 48, 174, 0.16), var(--shadow-hover);
-  outline: none;
+  outline: 2px solid var(--color-accent, var(--primary));
+  outline-offset: 2px;
 }
 
 .gameCardTop {
@@ -53,10 +52,46 @@
 }
 
 .gameTitle {
+  display: block;
   font-size: 1rem;
   font-weight: 700;
   line-height: 1.3;
   margin-bottom: 0.15rem;
+  color: inherit;
+  text-decoration: none;
+}
+
+.gameTitleRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-bottom: 0.15rem;
+  position: static; /* Allow ::after to position relative to .gameCard */
+}
+
+/* Stretched-link pattern: invisible link overlay covers entire card */
+.gameTitleLink::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.gameTitleRow .gameTitle {
+  margin-bottom: 0;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Stretched-link pattern: title link covers entire card */
+/* Removed due to lightningcss parsing issue - using alternative approach */
+
+.gameTitle:hover,
+.gameTitle:focus-visible {
+  color: var(--primary);
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 2px;
 }
 
 .gameTitle mark {
@@ -71,6 +106,20 @@
   font-weight: 600;
   color: var(--primary);
   margin-bottom: 0.5rem;
+}
+
+.gamePublisherLink {
+  color: inherit;
+  position: relative;
+  z-index: 2;
+  text-decoration: none;
+}
+
+.gamePublisherLink:hover,
+.gamePublisherLink:focus-visible {
+  color: var(--primary-hover);
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .gamePublisher mark {
@@ -109,8 +158,25 @@
 
 .descriptorPreview {
   display: flex;
+  align-items: center;
   flex: 1 1 220px;
   min-width: 180px;
+  gap: 0.4rem;
+}
+
+.descriptorOverflow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: var(--bg-card);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0 0.4rem;
+  min-width: 2rem;
+  height: 2rem;
 }
 
 .gameCardRight {
@@ -156,7 +222,11 @@
 }
 
 .ratingBadge[data-rating="35"] {
-  background: var(--color-text-primary);
+  background: #111827;
+}
+
+:global([data-theme="dark"]) .ratingBadge[data-rating="35"] {
+  background: #334155;
 }
 
 .viewDetail {
@@ -174,6 +244,8 @@
   padding: 0.25rem 0;
   transition: color 0.15s;
   white-space: nowrap;
+  position: relative;
+  z-index: 2;
 }
 
 .viewDetail:hover {
@@ -259,11 +331,66 @@
   padding: 0 0.2rem;
 }
 
+/* ─── Page Jump ──────────────────────────────────────────────── */
+.pageJumpRow {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.4rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.pageJumpLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.pageJumpInput {
+  width: clamp(48px, 12vw, 56px);
+  height: 36px;
+  padding: 0 0.4rem;
+  font-size: 0.78rem;
+  font-family: inherit;
+  font-weight: 600;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.pageJumpInput:focus-visible {
+  border-color: var(--primary);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(97, 48, 174, 0.16);
+}
+
 /* ─── Virtual Scroll ────────────────────────────────────────── */
 .virtualScrollContainer {
   height: 70vh;
   overflow-y: auto;
   will-change: transform;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb, rgba(0,0,0,0.2)) transparent;
+}
+
+.virtualScrollContainer::-webkit-scrollbar {
+  width: 8px;
+}
+
+.virtualScrollContainer::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.virtualScrollContainer::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb, rgba(0,0,0,0.2));
+  border-radius: 4px;
+}
+
+.virtualScrollContainer::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-thumb-hover, rgba(0,0,0,0.35));
 }
 
 .virtualResultCount {
@@ -280,6 +407,12 @@
 }
 
 /* ─── Responsive ────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .gameCardMeta {
+    gap: 0.75rem;
+  }
+}
+
 @media (max-width: 600px) {
   .gameCardTop {
     flex-direction: column;
@@ -296,11 +429,61 @@
   }
 
   .gameCardMeta {
-    gap: 0.65rem;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .gameMetaGroup {
+    flex: 1 1 45%;
+    min-width: 0;
   }
 
   .paginationCenter {
     width: 100%;
     order: 2;
   }
+
+  .gameCard {
+    padding: var(--space-3);
+  }
 }
+
+.dataIncompleteBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0.15rem var(--space-2);
+  background: var(--warning-bg);
+  color: var(--warning-text);
+  border-radius: var(--radius-sm);
+  font-size: 0.7rem;
+  font-weight: 600;
+  flex-shrink: 0;
+  align-self: center;
+  border: 1px solid var(--warning-border);
+}
+
+/* ─── Quick Steam Check Link (#29) ────────────────────────────── */
+/* position:relative + z-index lifts it above the card's stretched-link overlay */
+.steamQuickLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-height: 44px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-decoration: none;
+  padding: 0.15rem 0;
+  position: relative;
+  z-index: 2;
+  transition: color 0.15s;
+}
+
+.steamQuickLink:hover,
+.steamQuickLink:focus-visible {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+

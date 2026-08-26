@@ -15,6 +15,9 @@ export function descriptorIdsFromGame(game: IgrsGame): number[] {
 }
 
 /** Cached reverse lookup: platform label → numeric ID */
+// ponytail: identity-comparison cache assumes `meta` is a stable singleton reference.
+// If loadIgrsData is ever called with different data (hot reload, data refresh),
+// these caches will serve stale data. Upgrade to WeakMap<Meta, Map> if usage changes.
 let cachedMeta: IgrsMeta | null = null;
 let platformNameToId: Map<string, number> | null = null;
 

@@ -2,7 +2,44 @@
 
 All notable changes to this project are documented here.
 
-This file follows the Keep a Changelog section model: Added, Changed, Deprecated, Removed, Fixed, and Security. The project package version is currently `0.0.2`; the visible Git history also contains a `v0.0.1` commit message without a tag in this checkout.
+This file follows the Keep a Changelog section model: Added, Changed, Deprecated, Removed, Fixed, and Security. The project package version is currently `0.0.5`; the visible Git history also contains a `v0.0.1` commit message without a tag in this checkout.
+
+## [0.0.5] - 2026-08-26
+
+### Added
+
+- Same-origin Steam proxy route `/proxy/steam/*` in `ops/worker` (strict path allowlist, GET-only, server-side cache) with staging/prod Wrangler routes.
+- Multi-proxy failover in the Steam Checker client: same-origin Worker proxy first, legacy third-party CORS proxy as bounded fallback (max four total attempts).
+- Hand-rolled service worker (`public/sw.js`) with network-first HTML, cache-first hashed assets, stale-while-revalidate data/i18n JSON, and an unregister kill-switch; PROD-gated registration plus an offline banner.
+- `docs/architecture.md` consolidating request/data-flow, deploy topology, pipeline contract, and key decisions.
+- Optional Cloudflare Web Analytics beacon injected into every HTML entry when `CF_BEACON_TOKEN` is set at build time.
+- Full publisher directory in the search sidebar: "Show all publishers" expands the top-20 list into a virtualized, filter-as-you-type directory of every publisher with counts.
+
+### Changed
+
+- Deploy topology resolved to artifact-only GitHub Pages: root-committed build outputs (`index.html`, `404.html`, `sitemap.xml`, `rss.xml`, `.nojekyll`, `CNAME`, synced asset trees) removed; custom domain marker moved to `public/CNAME`.
+- Search filter checkboxes with zero dynamic counts render dimmed but stay clickable (`aria-disabled="true"` escape hatch).
+- Print stylesheet extended: offline banner/dev toast/skip link hidden; rating badge colors preserved via `print-color-adjust`.
+- Structure tests updated for artifact-only deploy topology and service worker presence.
+- `npm run check` now runs a post-build `scripts/check-dist-structure.js` gate verifying serving-critical artifacts (`sw.js`, `CNAME`, `_headers`, HTML entries, data JSON) exist in `dist/`.
+
+### Removed
+
+- Dead re-export shim `src/shared/lib/search-constants.ts` and local backup file `config/vite.config.ts.backup`.
+- Branch-root sync script `ops/scripts/sync-pages-root.js` and its `build:pages-root` npm script.
+- Dead `nonce` parameter from the Worker's `htmlResponse`/`buildCspHeader` helpers (scripts were already blocked outright).
+
+### Security
+
+- Documented the dated accepted-risk rationale for `style-src 'unsafe-inline'` in SECURITY.md and `public/_headers`; documented the Cloudflare beacon CSP requirements.
+
+### Fixed
+
+- Duplicate `app.offlineBanner` key in both public i18n dictionaries (JSON.parse silently kept the last copy); a unit test now rejects duplicate keys in `public/assets/i18n/*.json`.
+- Service worker no longer trims hashed immutable chunks: unhashed mutable assets moved to a dedicated cache, the offline SPA-shell fallback (`/404.html`) is precached on install, and FIFO caps are per-cache (data/i18n 8 entries, finite icon set 64) to stop image revalidation churn.
+- Worker Steam proxy validates that upstream bodies parse as JSON before serving or caching, so an HTML interstitial can no longer be served/cached as `application/json` for the cache TTL.
+- "No descriptors" search facet now uses dynamic counts like every other facet instead of a static total.
+- ESLint config declares service-worker globals for `public/sw.js`.
 
 ## [0.0.3]
 

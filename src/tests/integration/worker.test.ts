@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import workerModule from '../../../ops/worker/worker.ts';
 
 interface WorkerModule {
@@ -61,6 +61,8 @@ const ENV = {
   META_PATH: '/data/meta.json',
 };
 
+const SPA_SHELL_HTML = '<!doctype html><html><head><title>Better-IGRS</title></head><body>SPA SHELL</body></html>';
+
 function jsonResponse(value: unknown): Response {
   return new Response(JSON.stringify(value), {
     status: 200,
@@ -80,6 +82,12 @@ beforeEach(() => {
     const href = String(url);
     if (href === 'https://test.example.com/data/games.json') return jsonResponse(GAMES);
     if (href === 'https://test.example.com/data/meta.json') return jsonResponse(META);
+    if (href === 'https://test.example.com/404.html') {
+      return new Response(SPA_SHELL_HTML, {
+        status: 200,
+        headers: { 'Content-Type': 'text/html; charset=utf-8' },
+      });
+    }
     return new Response('Not found', { status: 404 });
   }) as typeof fetch;
 });
@@ -220,17 +228,31 @@ describe('Bot detection', () => {
   ];
 
   for (const ua of normalBrowsers) {
-    it(`redirects normal browser: ${ua.slice(0, 40)}`, async () => {
+    it(`serves the SPA shell to normal browser: ${ua.slice(0, 40)}`, async () => {
       const response = await worker.fetch(
         new Request('https://worker.test/game/1', {
           headers: { 'user-agent': ua },
         }),
         ENV,
       );
-      expect(response.status).toBe(302);
-      expect(response.headers.get('location')).toBe('https://test.example.com/game/1');
+      // Browsers get the SPA shell directly at /game/:id (no redirect loop).
+      expect(response.status).toBe(200);
+      expect(response.headers.get('content-type')).toContain('text/html');
+      expect(await response.text()).toContain('SPA SHELL');
     });
   }
+
+  it('falls back to the legacy hash redirect when the shell fetch fails', async () => {
+    const response = await worker.fetch(
+      new Request('https://worker.test/game/7', {
+        headers: { 'user-agent': normalBrowsers[0] },
+      }),
+      { ...ENV, SITE_ORIGIN: 'https://missing.example.com' },
+    );
+    expect(response.status).toBe(302);
+    expect(response.headers.get('location')).toBe('https://missing.example.com/search/#7');
+    expect(response.headers.get('x-content-type-options')).toBe('nosniff');
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -277,7 +299,7 @@ describe('Preview HTML generation', () => {
     expect(html).toContain('/game/1/oembed');
   });
 
-  it('includes redirect script for browser fallback', async () => {
+  it('keeps preview HTML stable for crawlers', async () => {
     const response = await worker.fetch(
       new Request('https://worker.test/game/1', {
         headers: { 'user-agent': 'Discordbot/2.0' },
@@ -285,7 +307,8 @@ describe('Preview HTML generation', () => {
       ENV,
     );
     const html = await response.text();
-    expect(html).toContain('window.location.replace');
+    expect(html).toContain('Open this game in Better-IGRS');
+    expect(html).not.toContain('window.location.replace');
   });
 
   it('properly escapes game names with special characters', async () => {
@@ -426,7 +449,7 @@ describe('Security headers', () => {
     const csp = response.headers.get('content-security-policy');
     expect(csp).toBeTruthy();
     expect(csp).toContain("default-src 'none'");
-    expect(csp).toContain("script-src 'unsafe-inline'");
+    expect(csp).toContain("script-src 'none'");
     expect(csp).toContain("style-src 'unsafe-inline'");
     expect(csp).toContain('img-src https://test.example.com');
     expect(csp).toContain("frame-ancestors 'none'");
@@ -484,15 +507,19 @@ describe('Security headers', () => {
     expect(response.headers.get('x-content-type-options')).toBe('nosniff');
   });
 
-  it('includes X-Content-Type-Options on redirect responses', async () => {
+  it('includes X-Content-Type-Options on SPA shell responses', async () => {
     const response = await worker.fetch(
       new Request('https://worker.test/game/1', {
         headers: { 'user-agent': 'Mozilla/5.0 Chrome/120.0.0.0' },
       }),
       ENV,
     );
-    expect(response.status).toBe(302);
+    expect(response.status).toBe(200);
     expect(response.headers.get('x-content-type-options')).toBe('nosniff');
+    expect(response.headers.get('x-frame-options')).toBe('DENY');
+    expect(response.headers.get('content-security-policy')).toContain("script-src 'self'");
+    // HTML shell must always revalidate so new deploys propagate immediately
+    expect(response.headers.get('cache-control')).toBe('no-cache');
   });
 
   it('includes CSP and X-Frame-Options on 404 HTML responses', async () => {
@@ -551,5 +578,112 @@ describe('Cache headers', () => {
       ENV,
     );
     expect(response.headers.get('cache-control')).toBe('no-store');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Steam proxy pass-through
+// ---------------------------------------------------------------------------
+
+const STEAM_UPSTREAM_JSON = JSON.stringify({ items: [{ id: 620, name: 'Portal', type: 'app' }] });
+
+function fakeSteamCache() {
+  const store = new Map<string, Response>();
+  return {
+    store,
+    async match(request: Request | string) {
+      const key = String(request);
+      return store.get(key) ? store.get(key)!.clone() : undefined;
+    },
+    async put(request: Request | string, response: Response) {
+      store.set(String(request), response.clone());
+    },
+  };
+}
+
+describe('Steam proxy route', () => {
+  let originalFetch: typeof globalThis.fetch;
+
+  beforeEach(() => {
+    originalFetch = globalThis.fetch;
+    globalThis.fetch = (async (url: RequestInfo | URL) => {
+      const href = String(url);
+      if (href === 'https://test.example.com/data/games.json') return jsonResponse(GAMES);
+      if (href === 'https://test.example.com/data/meta.json') return jsonResponse(META);
+      if (href.startsWith('https://store.steampowered.com/')) {
+        return new Response(STEAM_UPSTREAM_JSON, {
+          status: 200,
+          headers: { 'Content-Type': 'application/json; charset=utf-8' },
+        });
+      }
+      return new Response('Not found', { status: 404 });
+    }) as typeof fetch;
+    (globalThis as { caches?: unknown }).caches = { default: fakeSteamCache() };
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+    delete (globalThis as { caches?: unknown }).caches;
+  });
+
+  it('forwards allowlisted paths to the hardcoded Steam origin with query verbatim', async () => {
+    const response = await worker.fetch(
+      new Request('https://worker.test/proxy/steam/api/storesearch/?term=portal&l=en&cc=US'),
+      ENV,
+    );
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual(JSON.parse(STEAM_UPSTREAM_JSON));
+    expect(response.headers.get('content-type')).toContain('application/json');
+    expect(response.headers.get('x-content-type-options')).toBe('nosniff');
+  });
+
+  it('rejects non-GET requests with 405 and no-store', async () => {
+    const response = await worker.fetch(
+      new Request('https://worker.test/proxy/steam/api/storesearch/?term=x', { method: 'POST' }),
+      ENV,
+    );
+    expect(response.status).toBe(405);
+    expect(response.headers.get('cache-control')).toBe('no-store');
+  });
+
+  it('returns 404 for non-allowlisted proxy sub-paths without touching upstream', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    const response = await worker.fetch(
+      new Request('https://worker.test/proxy/steam/other'),
+      ENV,
+    );
+    expect(response.status).toBe(404);
+    expect(fetchSpy.mock.calls.some(([url]) => String(url).includes('steampowered'))).toBe(false);
+  });
+
+  it('caches upstream responses server-side and serves repeats from cache', async () => {
+    const first = await worker.fetch(
+      new Request('https://worker.test/proxy/steam/appreviews/620?json=1&filter=recent'),
+      ENV,
+    );
+    expect(first.status).toBe(200);
+    // Second identical request must be served without a second upstream fetch.
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    const second = await worker.fetch(
+      new Request('https://worker.test/proxy/steam/appreviews/620?json=1&filter=recent'),
+      ENV,
+    );
+    expect(second.status).toBe(200);
+    expect(await second.json()).toEqual(JSON.parse(STEAM_UPSTREAM_JSON));
+    // Zero upstream fetches after the cached first request — served from cache.
+    expect(fetchSpy.mock.calls.filter(([url]) => String(url).startsWith('https://store.steampowered.com')).length).toBe(0);
+    expect(first.headers.get('cache-control')).toContain('max-age=60');
+  });
+
+  it('maps upstream failure to a generic 502 no-store error', async () => {
+    globalThis.fetch = (async () => new Response('upstream down', { status: 503 })) as typeof fetch;
+    const response = await worker.fetch(
+      new Request('https://worker.test/proxy/steam/api/appdetails?appids=1'),
+      ENV,
+    );
+    expect(response.status).toBe(502);
+    expect(response.headers.get('cache-control')).toBe('no-store');
+    const json = await response.json();
+    expect(json.error).toBe('Steam request failed');
   });
 });

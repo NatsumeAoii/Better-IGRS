@@ -20,6 +20,10 @@ while ((versionMatch = versionPattern.exec(changelogContent)) !== null) {
   }
 }
 
+if (detectedVersion === '0.0.0') {
+  console.warn('[vite] Could not detect version from CHANGELOG.md, using 0.0.0');
+}
+
 const sourceRootUrl = new URL('../src/', import.meta.url);
 const root = fileURLToPath(sourceRootUrl);
 const htmlEntry = (relativePath: string) => fileURLToPath(new URL(relativePath, sourceRootUrl));
@@ -56,6 +60,29 @@ function hiddenPathGuard(): Plugin {
   };
 }
 
+// Privacy-friendly Cloudflare Web Analytics beacon (cookieless, no PII).
+// Injected into every HTML entry only when CF_BEACON_TOKEN is set, so dev
+// servers and token-less CI builds stay clean. Enabling also requires
+// allowing static.cloudflareinsights.com in the deployed CSP script-src.
+function cloudflareBeacon(): Plugin {
+  const token = process.env.CF_BEACON_TOKEN;
+  return {
+    name: 'igrs-cf-beacon',
+    transformIndexHtml() {
+      if (!token) return [];
+      return [{
+        tag: 'script',
+        attrs: {
+          defer: true,
+          src: 'https://static.cloudflareinsights.com/beacon.min.js',
+          'data-cf-beacon': JSON.stringify({ token })
+        },
+        injectTo: 'head'
+      }];
+    }
+  };
+}
+
 export default defineConfig(async () => {
   const rollupPlugins = analyze
     ? [(await import('rollup-plugin-visualizer')).visualizer({
@@ -73,6 +100,7 @@ export default defineConfig(async () => {
     },
     plugins: [
       hiddenPathGuard(),
+      cloudflareBeacon(),
       react()
     ],
     publicDir: fileURLToPath(new URL('../public', import.meta.url)),
@@ -116,17 +144,32 @@ export default defineConfig(async () => {
         plugins: rollupPlugins
       }
     },
+    experimental: {
+      // 404.html is the SPA fallback served at arbitrary unknown paths (e.g.
+      // /game/123 by GitHub Pages directly, or re-served at /game/:id by the
+      // preview Worker). Relative asset URLs would resolve against the request
+      // path and 404, so this one entry gets root-absolute asset URLs.
+      renderBuiltUrl(
+        filename: string,
+        { hostId, hostType }: { hostId: string; hostType: 'js' | 'css' | 'html' }
+      ): string | undefined {
+        if (hostType === 'html' && /(^|[\\/])404\.html$/.test(hostId)) {
+          return `/${filename}`;
+        }
+        return undefined;
+      }
+    },
     test: {
       environment: 'jsdom',
       globals: true,
       include: ['tests/**/*.test.ts', 'tests/**/*.test.tsx'],
-      setupFiles: ['test/setup.ts'],
+      setupFiles: ['tests/setup.ts'],
       css: true,
       coverage: {
         provider: 'v8' as const,
         thresholds: {
           statements: 70,
-          branches: 60,
+          branches: 65,
           functions: 70,
           lines: 70,
         },

@@ -6,16 +6,19 @@ import { useRequiredIgrsData } from '@/app/providers/data-provider';
 import { ErrorState, LoadingState } from '@/shared/components/data-state';
 import { ReviewTokens } from '@/shared/components/review-tokens';
 import { IMG_DESCRIPTOR, IMG_DESCRIPTOR_WEBP, IMG_RATING, IMG_RATING_WEBP, ratingContent } from '@/shared/lib/ratings';
+import { usePageTitle } from '@/shared/hooks/use-page-title';
 import styles from './ratings-page.module.css';
 
 export function RatingsPage() {
   const { lang, t } = useLanguage();
-  const { data, error, loading } = useRequiredIgrsData();
+  const { data, error, loading, ensureData } = useRequiredIgrsData();
+
+  usePageTitle('Ratings Guide - IGRSDB', 'Age ratings and content descriptor guide for the Indonesian Game Rating System.');
 
   if (error) {
     return (
       <main className={`${styles.pageContainer} ${styles.ratingsPage}`} data-route-ready="ratings">
-        <ErrorState title={t('data.error.title')} description={t('data.error.desc')} />
+        <ErrorState title={t('data.error.title')} description={t('data.error.desc')} onRetry={() => void ensureData().catch(() => undefined)} retryLabel={t('retry')} />
       </main>
     );
   }

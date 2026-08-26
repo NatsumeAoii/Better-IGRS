@@ -17,8 +17,10 @@ export const ASSET_BASE = publicAssetPath('assets/data');
 export const I18N_BASE = publicAssetPath('assets/i18n');
 export const IMAGE_BASE = `${ASSET_BASE}/images`;
 export const JSON_BASE = `${ASSET_BASE}/json`;
-export const FAVICON_URL = `${IMAGE_BASE}/favicon.svg`;
-export const IGRS_LOGO_URL = `${IMAGE_BASE}/igrs.svg`;
+// App-chrome artwork lives outside the refreshable dataset imagery.
+export const ICONS_BASE = publicAssetPath('assets/icons');
+export const FAVICON_URL = `${ICONS_BASE}/favicon.svg`;
+export const IGRS_LOGO_URL = `${ICONS_BASE}/igrs.svg`;
 export const OFFICIAL_RATING_INFO_URL = 'https://igrs.id/rating-info';
 export const RATING_METADATA = ratingMetadata;
 export const RATING_ORDER = ratingMetadata.map(item => item.id);

@@ -3,21 +3,30 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IGRSDB | Page Not Found</title>
-    <meta name="description" content="The requested IGRSDB page could not be found.">
+    <title>Better-IGRS | Page Not Found</title>
+    <meta name="description" content="The requested Better-IGRS page could not be found.">
     <link rel="canonical" href="https://igrs.madeby.my.id/404.html">
-    <meta property="og:title" content="IGRSDB | Page Not Found">
-    <meta property="og:description" content="The requested IGRSDB page could not be found.">
-    <meta property="og:image" content="https://igrs.madeby.my.id/assets/data/images/igrs.svg">
+    <meta property="og:title" content="Better-IGRS | Page Not Found">
+    <meta property="og:description" content="The requested Better-IGRS page could not be found.">
+    <meta property="og:image" content="https://igrs.madeby.my.id/assets/icons/icon-512.png">
     <meta property="og:url" content="https://igrs.madeby.my.id/404.html">
     <meta property="og:type" content="website">
     <meta name="twitter:card" content="summary">
-    <meta name="twitter:title" content="IGRSDB | Page Not Found">
-    <meta name="twitter:description" content="The requested IGRSDB page could not be found.">
-    <meta name="twitter:image" content="https://igrs.madeby.my.id/assets/data/images/igrs.svg">
+    <meta name="twitter:title" content="Better-IGRS | Page Not Found">
+    <meta name="twitter:description" content="The requested Better-IGRS page could not be found.">
+    <meta name="twitter:image" content="https://igrs.madeby.my.id/assets/icons/icon-512.png">
     <link rel="preconnect" href="https://fonts.bunny.net">
-    <link rel="stylesheet" href="https://fonts.bunny.net/css?family=raleway:300,400,500,600,700,800">
-    <link rel="icon" type="image/svg+xml" href="%BASE_URL%assets/data/images/favicon.svg">
+    <link rel="preconnect" href="https://cors.mefi.workers.dev" crossorigin>
+    <link rel="preconnect" href="https://cdn.cloudflare.steamstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.bunny.net/css?family=raleway:300,400,500,600,700,800&display=swap">
+    <link rel="icon" type="image/svg+xml" href="%BASE_URL%assets/icons/favicon.svg">
+    <meta name="theme-color" content="#ffffff">
+    <!-- Root-absolute paths for boot-critical resources: this file is the SPA
+         fallback served at arbitrary unknown paths (e.g. /game/123), where
+         relative URLs would resolve against the request path and break. -->
+    <script src="/assets/theme-init.js"></script>
+    <link rel="preload" href="/assets/data/json/igrs.games.json" as="fetch" crossorigin>
+    <link rel="manifest" href="/manifest.webmanifest">
   </head>
   <body>
     <div id="root"></div>

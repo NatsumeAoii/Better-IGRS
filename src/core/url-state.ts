@@ -7,11 +7,17 @@ function toPositiveInteger(value: unknown): number | null {
   return Number.isInteger(numeric) && numeric > 0 ? numeric : null;
 }
 
-function parseNumberList(params: URLSearchParams, key: string): Set<number> {
+function toDescriptorId(value: unknown): number | null {
+  const numeric = Number(value);
+  if (numeric === -1) return -1;
+  return Number.isInteger(numeric) && numeric > 0 ? numeric : null;
+}
+
+function parseNumberList(params: URLSearchParams, key: string, parse = toPositiveInteger): Set<number> {
   const values = params
     .getAll(key)
     .flatMap(value => String(value).split(','))
-    .map(value => toPositiveInteger(value.trim()))
+    .map(value => parse(value.trim()))
     .filter((value): value is number => value !== null);
   return new Set(values);
 }
@@ -46,7 +52,7 @@ export function readSearchState(params = new URLSearchParams()): SearchState {
     publisher: String(params.get('publisher') || '').trim(),
     ratings: parseNumberList(params, 'rating'),
     platforms: parseNumberList(params, 'platform'),
-    descriptors: parseNumberList(params, 'descriptor'),
+    descriptors: parseNumberList(params, 'descriptor', toDescriptorId),
     years: parseYearList(params, 'year'),
     page: Number.isFinite(page) && page > 0 ? Math.floor(page) : 1,
     sort: parseSort(params.get('sort'))
@@ -63,7 +69,7 @@ export function buildSearchParams(state: Partial<SearchState> = {}): URLSearchPa
   if (publisher) params.set('publisher', publisher);
   appendSet(params, 'rating', state.ratings, toPositiveInteger);
   appendSet(params, 'platform', state.platforms, toPositiveInteger);
-  appendSet(params, 'descriptor', state.descriptors, toPositiveInteger);
+  appendSet(params, 'descriptor', state.descriptors, toDescriptorId);
   appendSet(params, 'year', state.years, value => (/^\d{4}$/.test(String(value)) ? String(value) : null));
   if (Number.isFinite(page) && page > 1) params.set('page', String(Math.floor(page)));
   if (state.sort && state.sort !== 'relevance') params.set('sort', state.sort);

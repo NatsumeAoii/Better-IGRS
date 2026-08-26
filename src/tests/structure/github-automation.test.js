@@ -75,7 +75,7 @@ function testPagesWorkflowDeploysBuiltViteArtifact() {
   assert(!workflow.includes('npm ci --ignore-scripts'), `${workflowPath}: npm install should not suppress lifecycle scripts without a project-specific reason`);
   assert(workflow.includes('npm run check'), `${workflowPath}: Pages deployment should run the full deterministic project check before upload`);
   assert(workflow.includes('npm run check'), `${workflowPath}: Pages artifact should come from the checked Vite production build`);
-  assert(workflow.includes('cp CNAME dist/CNAME'), `${workflowPath}: Pages artifact should preserve the custom domain file`);
+  assert(fs.existsSync(path.join(ROOT, 'public', 'CNAME')), 'public/CNAME: Pages artifact should include the custom domain file via the Vite public dir');
   assert(workflow.includes('uses: actions/upload-pages-artifact@v5'), `${workflowPath}: expected current Pages artifact upload action`);
   assert(workflow.includes('path: dist'), `${workflowPath}: Pages artifact should upload the Vite dist directory`);
   assert(workflow.includes('retention-days: 1'), `${workflowPath}: Pages artifact upload should set explicit retention`);

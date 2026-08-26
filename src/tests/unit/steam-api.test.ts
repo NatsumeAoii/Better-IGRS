@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createSteamApi } from '@/shared/api/steam-api';
+import { createSteamApi, isSteamProxyError } from '@/shared/api/steam-api';
 import type { IgrsGame } from '@/shared/types';
 
 const TEST_PROXY_BASE = 'https://cors.mefi.workers.dev/';
@@ -83,5 +83,84 @@ describe('createSteamApi', () => {
     expect(result.status).toBe('match');
     expect(fetchSpy).toHaveBeenCalledTimes(2);
     expect(warnSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe('multi-proxy failover', () => {
+  const PRIMARY = 'https://primary.test/';
+  const FALLBACK = 'https://fallback.test/';
+
+  function failoverApi(t?: (key: string) => string) {
+    return createSteamApi({ proxyBases: [PRIMARY, FALLBACK], ...(t ? { t } : {}) });
+  }
+
+  it('succeeds via the secondary proxy when the primary is unreachable', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch')
+      .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+      .mockResolvedValueOnce(jsonResponse({ value: 1 }));
+
+    const result = await failoverApi().fetchJsonWithTimeout<unknown>('https://store.steampowered.com/api/x', 1000, { retries: 0 });
+
+    expect(result).toEqual({ value: 1 });
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    expect(String(vi.mocked(fetchSpy).mock.calls[0][0])).toContain(PRIMARY);
+    expect(String(vi.mocked(fetchSpy).mock.calls[1][0])).toContain(FALLBACK);
+  });
+
+  it('does not advance to the next proxy for non-network errors', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValue(new Response('<html></html>', {
+        status: 200,
+        headers: { 'content-type': 'text/html' },
+      }));
+
+    await expect(
+      failoverApi().fetchJsonWithTimeout('https://store.steampowered.com/api/x', 1000, { retries: 0 })
+    ).rejects.toThrow();
+
+    // Single base only — a bad upstream response must not punish the fallback.
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('throws SteamProxyError (proxy unreachable) when every proxy fails at network level', async () => {
+    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new TypeError('Failed to fetch'));
+
+    try {
+      await failoverApi(k => k).fetchJsonWithTimeout('https://store.steampowered.com/api/x', 1000, { retries: 1 });
+      expect.unreachable('expected rejection');
+    } catch (error) {
+      expect(isSteamProxyError(error)).toBe(true);
+    }
+  });
+
+  it('caps total network attempts across proxies at four', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new TypeError('Failed to fetch'));
+
+    await expect(
+      failoverApi().fetchJsonWithTimeout('https://store.steampowered.com/api/x', 1000, { retries: 5 })
+    ).rejects.toThrow();
+
+    expect(fetchSpy).toHaveBeenCalledTimes(4);
+  });
+
+  it('propagates user abort raised during the fallback attempt', async () => {
+    const caller = new AbortController();
+    const fetchSpy = vi.spyOn(globalThis, 'fetch')
+      .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+      .mockImplementationOnce((_url, init) => new Promise((_resolve, reject) => {
+        init?.signal?.addEventListener('abort', () => reject(new DOMException('The operation was aborted.', 'AbortError')), { once: true });
+      }));
+
+    const settled = failoverApi()
+      .fetchJsonWithTimeout('https://store.steampowered.com/api/x', 10_000, { retries: 0, signal: caller.signal })
+      .catch(error => error);
+
+    // Wait until the fallback proxy request is actually in flight.
+    await vi.waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(2));
+    caller.abort();
+
+    const error = await settled;
+    expect(error).toBeInstanceOf(DOMException);
+    expect((error as DOMException).name).toBe('AbortError');
   });
 });

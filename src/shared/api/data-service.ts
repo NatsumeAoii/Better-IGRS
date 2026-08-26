@@ -121,7 +121,7 @@ export async function loadIgrsData(options: { unlocked?: boolean } = {}): Promis
 
   for (const game of games) {
     if (Number.isFinite(game.id)) gamesById.set(game.id, game);
-    const normName = normalizeSearchText(game.name);
+    const normName = normalizeSearchText(game.name).replace(/\s/g, '');
     if (normName && !gamesByNormalizedName.has(normName)) {
       gamesByNormalizedName.set(normName, game);
     }

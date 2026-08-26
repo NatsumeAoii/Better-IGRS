@@ -41,7 +41,7 @@ function testPackageUsesModernFrontendStack() {
   const dependencies = pkg.dependencies || {};
   const devDependencies = pkg.devDependencies || {};
 
-  assert(pkg.name === 'igrsdb', 'package.json: expected package name');
+  assert(pkg.name === 'better-igrs', 'package.json: expected package name');
   assert(/^\d+\.\d+\.\d+/.test(pkg.version), 'package.json: version should use semantic versioning');
   assert(pkg.description && !/todo|placeholder/i.test(pkg.description), 'package.json: expected production description');
   assert(pkg.private === true, 'package.json: static app package should stay private');
@@ -49,8 +49,8 @@ function testPackageUsesModernFrontendStack() {
   assert(pkg.main === 'src/main.tsx', 'package.json: expected source entry metadata');
   assert(pkg.homepage === 'https://igrs.madeby.my.id/', 'package.json: expected deployed homepage metadata');
   assert(pkg.scripts.dev === 'vite --config config/vite.config.ts --host 127.0.0.1', 'package.json: dev should run Vite with grouped config');
-  assert(pkg.scripts.build === 'tsc -b config/tsconfig.json && vite --config config/vite.config.ts build', 'package.json: build should typecheck and run Vite without mutating branch-root Pages files');
-  assert(pkg.scripts['build:pages-root'] === 'npm run build && node ops/scripts/sync-pages-root.js', 'package.json: branch-root Pages sync should be explicit');
+  assert(pkg.scripts.build === 'tsc -b config/tsconfig.json && vite --config config/vite.config.ts build && node scripts/generate-sitemap.mjs && node scripts/generate-rss.mjs', 'package.json: build should typecheck and run Vite without mutating branch-root Pages files (sitemap/RSS write to dist/)');
+  assert(!pkg.scripts['build:pages-root'], 'package.json: branch-root Pages sync was removed â€” artifact deploy via pages.yml is canonical');
   assert(pkg.scripts.preview === 'vite --config config/vite.config.ts preview --host 127.0.0.1', 'package.json: preview should run Vite preview with grouped config');
   assert(pkg.scripts.typecheck === 'tsc -b config/tsconfig.json', 'package.json: typecheck should use TypeScript build mode');
   assert(pkg.scripts.test === 'vitest --config config/vite.config.ts run', 'package.json: test should use Vitest with grouped config');
@@ -86,21 +86,32 @@ function testProjectRootStaysGrouped() {
   }
 }
 
-function testGitHubPagesBranchRootHasBuiltEntrypoint() {
-  const rootIndex = read('index.html');
-  assert(rootIndex.includes('<div id="root"></div>'), 'index.html: branch-root Pages should serve the app, not README.md');
-  assert(rootIndex.includes('src="./assets/main-'), 'index.html: branch-root Pages should load the built JS bundle');
-  assert(rootIndex.includes('href="./assets/main-'), 'index.html: branch-root Pages should load the built CSS bundle');
-  assert(exists('assets/data/json/igrs.games.json'), 'assets/data/json/igrs.games.json: branch-root Pages should include public data');
-  assert(exists('assets/data/images/favicon.svg'), 'assets/data/images/favicon.svg: branch-root Pages should include public images');
-  assert(exists('search/index.html'), 'search/index.html: branch-root Pages should include the search route entrypoint');
-  assert(exists('ratings/index.html'), 'ratings/index.html: branch-root Pages should include the ratings route entrypoint');
-  assert(exists('steamchecker/index.html'), 'steamchecker/index.html: branch-root Pages should include the Steam checker route entrypoint');
-  assert(exists('.nojekyll'), '.nojekyll: branch-root Pages should not run Jekyll processing');
+function testPagesArtifactDeployTopology() {
+  // Artifact deploy (pages.yml â†’ upload-pages-artifact â†’ deploy-pages) serves
+  // dist/ only; root-committed build outputs were removed as dead weight.
+  const workflow = read('.github/workflows/pages.yml');
+  assert(workflow.includes('uses: actions/upload-pages-artifact@v5'), '.github/workflows/pages.yml: artifact upload should be the deploy source');
+  assert(!workflow.includes('sync-pages-root'), '.github/workflows/pages.yml: branch-root sync must not be referenced');
 
-  const syncScript = read('ops/scripts/sync-pages-root.js');
-  assert(syncScript.includes('PUBLISH_PATHS'), 'ops/scripts/sync-pages-root.js: expected explicit publish path allowlist');
-  assert(syncScript.includes('assertInsideProject'), 'ops/scripts/sync-pages-root.js: sync should guard write paths');
+  assert(exists('public/CNAME'), 'public/CNAME: custom domain marker should ship inside the Vite public dir so it lands in dist/');
+  for (const relativePath of ['index.html', '404.html', 'sitemap.xml', 'rss.xml', '.nojekyll', 'CNAME', 'assets', 'ratings', 'search', 'steamchecker']) {
+    assert(!exists(relativePath), `${relativePath}: root-level build output should stay deleted (artifact deploy serves dist/)`);
+  }
+  assert(!exists('ops/scripts/sync-pages-root.js'), 'ops/scripts/sync-pages-root.js: branch-root sync script should stay deleted');
+}
+
+function testServiceWorkerAssetsExistAndRegisterSafely() {
+  const sw = read('public/sw.js');
+  assert(sw.includes('igrs-shell-'), 'public/sw.js: expected versioned shell cache name');
+  assert(sw.includes('staleWhileRevalidate'), 'public/sw.js: data/i18n assets should use stale-while-revalidate');
+  assert(sw.includes("startsWith('/proxy/')"), 'public/sw.js: same-origin Steam proxy requests must bypass the SW');
+  assert(sw.includes("unregister()"), 'public/sw.js: kill-switch branch should unregister the worker when VERSION=off');
+
+  const main = read('src/main.tsx');
+  assert(main.includes('import.meta.env.PROD') && main.includes('serviceWorker'), 'src/main.tsx: SW registration should be PROD-gated and feature-detected');
+  assert(main.includes('.catch('), 'src/main.tsx: SW registration failure must never break app boot');
+
+  assert(exists('src/shared/components/offline-banner.tsx'), 'src/shared/components/offline-banner.tsx: expected offline affordance component');
 }
 
 function testViteTypescriptConfigurationExists() {
@@ -142,16 +153,16 @@ function testProjectPagesAssetPathsArePortable() {
   assert(app.includes('basename={routerBasename}'), 'src/app/App.tsx: BrowserRouter should use the deployed app basename');
 
   const htmlEntries = [
-    { favicon: '%BASE_URL%assets/data/images/favicon.svg', path: 'src/index.html' },
-    { favicon: '%BASE_URL%assets/data/images/favicon.svg', path: 'src/404.html' },
-    { favicon: '../assets/data/images/favicon.svg', path: 'src/search/index.html' },
-    { favicon: '../assets/data/images/favicon.svg', path: 'src/ratings/index.html' },
-    { favicon: '../assets/data/images/favicon.svg', path: 'src/steamchecker/index.html' }
+    { favicon: '%BASE_URL%assets/icons/favicon.svg', path: 'src/index.html' },
+    { favicon: '%BASE_URL%assets/icons/favicon.svg', path: 'src/404.html' },
+    { favicon: '../assets/icons/favicon.svg', path: 'src/search/index.html' },
+    { favicon: '../assets/icons/favicon.svg', path: 'src/ratings/index.html' },
+    { favicon: '../assets/icons/favicon.svg', path: 'src/steamchecker/index.html' }
   ];
   for (const { favicon, path: relativePath } of htmlEntries) {
     const html = read(relativePath);
     assert(html.includes(`href="${favicon}"`), `${relativePath}: favicon should use a path that resolves under the deployed app base`);
-    assert(!html.includes('href="/assets/data/images/favicon.svg"'), `${relativePath}: favicon should not use a domain-root asset path`);
+    assert(!html.includes('href="/assets/icons/favicon.svg"'), `${relativePath}: favicon should not use a domain-root asset path`);
   }
 
   const hardcodedAssetFiles = walkFiles('src', relativePath => /\.(ts|tsx)$/.test(relativePath))
@@ -222,16 +233,17 @@ function testHtmlEntrypointsUseViteReactRoot() {
 function testVitePublicAssetsAreCanonical() {
   assert(exists('public/assets/data/json/igrs.meta.json'), 'public/assets/data/json/igrs.meta.json: expected canonical metadata asset');
   assert(exists('public/assets/data/json/igrs.games.json'), 'public/assets/data/json/igrs.games.json: expected canonical games asset');
-  assert(exists('public/assets/data/images/favicon.svg'), 'public/assets/data/images/favicon.svg: expected canonical favicon asset');
-  assert(exists('assets/data/json/igrs.meta.json'), 'assets/data/json/igrs.meta.json: branch-root Pages should include generated public data');
-  assert(!exists('assets/styles/main.css'), 'assets/styles/main.css: source styles should be bundled from src/styles');
-
-  for (const fileName of ['igrs.meta.json', 'igrs.games.json', 'igrs.extra.json', 'steam.meta.json']) {
-    const publicPath = `public/assets/data/json/${fileName}`;
-    const branchRootPath = `assets/data/json/${fileName}`;
-    assert(exists(branchRootPath), `${branchRootPath}: branch-root Pages should include generated public data`);
-    assert(read(publicPath) === read(branchRootPath), `${branchRootPath}: branch-root Pages data should match ${publicPath}`);
+  // App-chrome artwork lives in assets/icons; assets/data/images holds only
+  // pipeline-refreshed dataset imagery (ratings/, descriptors/).
+  for (const icon of ['favicon.svg', 'favicon-32.png', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png', 'igrs.svg']) {
+    assert(exists(`public/assets/icons/${icon}`), `public/assets/icons/${icon}: expected canonical app icon asset`);
   }
+  for (const straggler of ['favicon.svg', 'igrs.svg', 'icon-512.png', 'apple-touch-icon.png', 'better-igrs-logo.png']) {
+    assert(!exists(`public/assets/data/images/${straggler}`), `public/assets/data/images/${straggler}: app icons must live under public/assets/icons`);
+  }
+  assert(exists('public/assets/data/images/ratings'), 'public/assets/data/images/ratings: expected dataset rating imagery');
+  assert(exists('public/assets/data/images/descriptors'), 'public/assets/data/images/descriptors: expected dataset descriptor imagery');
+  assert(!exists('assets/styles/main.css'), 'assets/styles/main.css: source styles should be bundled from src/styles');
 }
 
 function testAutomationTargetsVitePublicData() {
@@ -277,7 +289,8 @@ function testRepositoryFinalizationHygiene() {
 const tests = [
   testPackageUsesModernFrontendStack,
   testProjectRootStaysGrouped,
-  testGitHubPagesBranchRootHasBuiltEntrypoint,
+  testPagesArtifactDeployTopology,
+  testServiceWorkerAssetsExistAndRegisterSafely,
   testViteTypescriptConfigurationExists,
   testProjectPagesAssetPathsArePortable,
   testReactApplicationBoundariesExist,

@@ -1,3 +1,4 @@
+﻿// NOTE: DOMPurify requires `window`. This module is browser-only and cannot be used in SSR.
 /**
  * HTML processing, sanitization, and extra field formatting utilities.
  *
@@ -5,8 +6,6 @@
  * of safe tags and attributes.
  */
 import DOMPurify from 'dompurify';
-import { EXTRA_FIELD_PATCHED_LEGACY_TEXT, EXTRA_FIELD_PATCHED_TOKEN } from '@/core/constants';
-import { safeHttpUrl } from '@/core/safe-render';
 
 const ALLOWED_TAGS = [
   'p', 'ul', 'ol', 'li',
@@ -56,13 +55,4 @@ export function stripHtml(value: unknown): string {
     .replace(/\n{3,}/g, '\n\n')
     .replace(/[ \t]{2,}/g, ' ')
     .trim();
-}
-
-export function formatExtraField(value: unknown, linksPatchedLabel: string): string {
-  const text = typeof value === 'string' ? value.trim() : '';
-  if (!text) return '';
-  if (text === EXTRA_FIELD_PATCHED_TOKEN || text === EXTRA_FIELD_PATCHED_LEGACY_TEXT) {
-    return linksPatchedLabel;
-  }
-  return safeHttpUrl(text)?.href || text;
 }

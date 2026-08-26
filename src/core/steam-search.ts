@@ -111,13 +111,13 @@ function addonPenalty(candidateName: unknown): number {
   return 0;
 }
 
-function scoreCandidate(game: Pick<IgrsGame, 'name'>, candidate: SteamSearchCandidate): number {
-  const targetTokens = [...new Set(meaningfulTokens(game?.name))];
+function scoreCandidate(game: Pick<IgrsGame, 'name'>, candidate: SteamSearchCandidate, targetTokens?: string[]): number {
+  const tokens = targetTokens ?? [...new Set(meaningfulTokens(game?.name))];
   const candidateTokens = new Set(meaningfulTokens(candidate?.name));
-  if (!targetTokens.length || !candidateTokens.size) return 0;
+  if (!tokens.length || !candidateTokens.size) return 0;
 
-  const matches = targetTokens.filter(token => candidateTokens.has(token));
-  let score = Math.round((matches.length / targetTokens.length) * 100);
+  const matches = tokens.filter(token => candidateTokens.has(token));
+  let score = Math.round((matches.length / tokens.length) * 100);
   const targetHasSubtitle = /\s[-:|]\s/.test(String(game?.name || ''));
   const candidateName = normalizeSteamSearchText(candidate?.name);
 
@@ -130,10 +130,11 @@ function scoreCandidate(game: Pick<IgrsGame, 'name'>, candidate: SteamSearchCand
 }
 
 export function selectSteamSearchResult(game: Pick<IgrsGame, 'name'>, candidates: SteamSearchCandidate[]): SteamSearchResult {
+  const targetTokens = [...new Set(meaningfulTokens(game?.name))];
   const scored = (Array.isArray(candidates) ? candidates : [])
     .map(candidate => ({
       ...candidate,
-      score: scoreCandidate(game, candidate)
+      score: scoreCandidate(game, candidate, targetTokens)
     }))
     .filter(candidate => candidate.score > 0)
     .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));

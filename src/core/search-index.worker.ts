@@ -17,6 +17,7 @@ export interface SerializedSearchIndexItem {
   game: IgrsGame;
   nameNorm: string;
   publisherNorm: string;
+  descNorm: string;
   ratingIds: number[];
   descriptorIds: number[];
   platformIds: number[];
@@ -54,6 +55,7 @@ self.onmessage = (event: MessageEvent<WorkerMessage>) => {
       game: item.game,
       nameNorm: item.nameNorm,
       publisherNorm: item.publisherNorm,
+      descNorm: item.descNorm,
       ratingIds: item.ratingIds,
       descriptorIds: item.descriptorIds,
       platformIds: item.platformIds,

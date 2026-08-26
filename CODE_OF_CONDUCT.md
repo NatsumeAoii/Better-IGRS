@@ -1,96 +1,37 @@
-# Code of Conduct
+# Contributor Covenant Code of Conduct
 
-## Purpose
+## Our Pledge
 
-IGRSDB should be a practical, respectful place to improve a public-facing web project that handles game data, ratings information, accessibility concerns, and security-sensitive rendering paths.
+We as members, contributors, and leaders pledge to make participation in our community a harassment-free experience for everyone, regardless of age, body size, visible or invisible disability, ethnicity, sex characteristics, gender identity and expression, level of experience, education, socio-economic status, nationality, personal appearance, race, religion, or sexual identity and orientation.
 
-This code of conduct is based on the Contributor Covenant model and adapted for this repository.
+We pledge to act and interact in ways that contribute to an open, welcoming, diverse, inclusive, and healthy community.
 
-## Scope
+## Our Standards
 
-This code of conduct applies in all project spaces, including:
+Examples of behavior that contributes to a positive environment for our community include:
 
-- Issues, pull requests, reviews, discussions, and documentation.
-- Project chat, email, or maintainer-approved support channels.
-- Public behavior that directly represents the project.
+* Demonstrating empathy and kindness toward other people
+* Being respectful of differing opinions, viewpoints, and experiences
+* Giving and gracefully accepting constructive feedback
+* Accepting responsibility and apologizing to those affected by our mistakes, and learning from the experience
+* Focusing on what is best not just for us as individuals, but for the overall community
 
-It applies to maintainers, contributors, reviewers, users, and anyone participating in the project space.
+Examples of unacceptable behavior include:
 
-## Expected Behavior
-
-Participants are expected to:
-
-- Be respectful, direct, and specific.
-- Critique code, decisions, and risks instead of attacking people.
-- Explain technical disagreements with evidence, reproduction steps, or references.
-- Keep discussions relevant to the project.
-- Respect accessibility, security, privacy, localization, and maintainability concerns.
-- Credit sources when using external references, data, or examples.
-- Disclose conflicts of interest when they matter to a technical decision.
-- Report security issues responsibly and avoid public proof-of-concept details before maintainers can respond.
-
-## Unacceptable Behavior
-
-The following behavior is not acceptable:
-
-- Harassment, threats, intimidation, stalking, or sustained disruption.
-- Insults, slurs, personal attacks, or demeaning comments.
-- Sexualized language or imagery in project spaces.
-- Publishing private information without clear permission.
-- Repeatedly derailing technical discussions after maintainers ask to refocus.
-- Bad-faith reports, review obstruction, or intentional misrepresentation.
-- Submitting code that intentionally includes malware, hardcoded secrets, credential theft, tracking without consent, or privacy violations.
-- Publicly disclosing exploitable security details before maintainers have had a reasonable chance to respond.
-
-## Reporting Conduct Issues
-
-No private conduct contact is configured in this checkout.
-
-If no private channel is available, open a repository issue with only the minimum safe detail and ask for a private follow-up channel. Do not include private personal information, secrets, exploit payloads, or unrelated sensitive data in a public report.
-
-Reports should include:
-
-- What happened.
-- Where it happened.
-- When it happened.
-- Who was involved.
-- Links, screenshots, or logs when safe to share.
-- Whether there is an immediate safety, privacy, or security risk.
+* The use of sexualized language or imagery, and sexual attention or advances of any kind
+* Trolling, insulting or derogatory comments, and personal or political attacks
+* Public or private harassment
+* Publishing others' private information, such as a physical or email address, without their explicit permission
+* Other conduct which could reasonably be considered inappropriate in a professional setting
 
 ## Enforcement Responsibilities
 
-Maintainers are responsible for clarifying standards of acceptable behavior and are expected to take appropriate and proportionate action in response to unacceptable behavior.
+Community leaders are responsible for clarifying and enforcing our standards of acceptable behavior and will take appropriate and fair corrective action in response to any behavior that they deem inappropriate, threatening, offensive, or harmful.
 
-Maintainers may remove, edit, or reject comments, commits, code, issues, and other contributions that do not align with this code of conduct. Maintainers may also temporarily or permanently limit participation for behavior they consider inappropriate, threatening, harmful, or disruptive.
+## Scope
 
-## Enforcement Actions
+This Code of Conduct applies within all community spaces, and also applies when an individual is officially representing the community in public spaces.
 
-Maintainer actions may include:
+## Enforcement
 
-- A private clarification or warning.
-- A request to edit or remove harmful content.
-- Temporary limits on participation.
-- Closing, locking, or hiding discussions.
-- Rejecting contributions.
-- Temporary or permanent removal from project spaces.
-
-Maintainers should apply enforcement consistently and proportionally. When possible, they should explain the violated expectation and the action taken. For severe security, privacy, or safety issues, maintainers may act without prior warning.
-
-## Review Culture
-
-Code review should be rigorous without being personal. Good review comments:
-
-- Point to a concrete file, line, behavior, or risk.
-- Explain why the issue matters.
-- Suggest a fix or ask a focused question.
-- Distinguish blocking issues from preferences.
-
-Authors should respond to review by addressing the technical point, asking for clarification, or explaining the trade-off. Avoid performative agreement and avoid dismissing concerns without evidence.
-
-## Security and Sensitive Reports
-
-Security reports should follow `SECURITY.md`. Participants must not pressure reporters to disclose private details publicly. Reports involving secrets, user data, unsafe redirects, injection, path traversal, dependency compromise, or external-service abuse should be triaged before broad publication.
-
-## Acknowledgement
-
-Participation in this project means accepting this code of conduct and helping keep the project space useful, safe, and focused.
+Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the community leaders. All complaints will be reviewed and investigated promptly and fairly.

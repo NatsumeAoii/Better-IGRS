@@ -25,7 +25,7 @@
 }
 
 .pageTitle {
-  font-size: 1.6rem;
+  font-size: clamp(1.2rem, 3vw, 1.6rem);
   font-weight: 800;
   letter-spacing: 0;
   margin-bottom: 0.35rem;
@@ -33,7 +33,7 @@
 }
 
 .shell {
-  background: rgba(255, 255, 255, 0.82);
+  background: var(--bg-card);
   backdrop-filter: blur(10px);
   border: 1.5px solid var(--border);
   border-radius: var(--radius);
@@ -83,6 +83,39 @@
 .inputRow input:focus {
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(97, 48, 174, 0.12);
+}
+
+.inputRow input.inputError {
+  border-color: var(--color-danger, #dc2626);
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}
+
+.historyRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.65rem;
+}
+
+.historyChip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3rem 0.65rem;
+  font-size: 0.75rem;
+  font-family: inherit;
+  font-weight: 600;
+  color: var(--primary);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.15s var(--ease);
+}
+
+.historyChip:hover {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
 }
 
 .submitButton {
@@ -166,6 +199,29 @@
 
 .resultDescriptionShell {
   margin-top: 0.9rem;
+}
+
+.resultDescriptionCollapsed {
+  max-height: 14rem;
+  overflow: hidden;
+  mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+}
+
+.descToggleBtn {
+  background: none;
+  border: none;
+  color: var(--primary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 0.4rem 0;
+  margin-top: 0.25rem;
+}
+
+.descToggleBtn:hover {
+  text-decoration: underline;
 }
 
 /* ─── Steam Description ─────────────────────────────────────── */
@@ -357,7 +413,7 @@
 /* ─── Empty / Loading States ────────────────────────────────── */
 
 .emptyState {
-  background: rgba(255, 255, 255, 0.72);
+  background: var(--bg-card);
   border: 1.5px solid var(--border);
   border-radius: var(--radius);
   text-align: center;
@@ -423,15 +479,18 @@
 @media (max-width: 600px) {
   .resultHeader {
     flex-direction: column;
+    gap: 0.75rem;
   }
 
   .resultHeaderActions {
     justify-content: flex-start;
     width: 100%;
+    flex-wrap: wrap;
   }
 
   .resultStoreBtn {
-    width: 100%;
+    flex: 1;
+    min-width: 0;
   }
 
   .shell {
@@ -446,5 +505,14 @@
 
   .submitButton {
     width: 100%;
+  }
+
+  .hero {
+    padding: 0.75rem;
+  }
+
+  .historyRow {
+    flex-wrap: wrap;
+    gap: 0.35rem;
   }
 }

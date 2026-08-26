@@ -2,15 +2,22 @@
 #
 # GitHub Pages does not support custom cache headers via _headers files.
 # Since this site is served through Cloudflare (custom domain: igrs.madeby.my.id),
-# these headers should be configured as Cloudflare Cache Rules on the zone.
+# configure these as Cloudflare Cache Rules / Transform Rules on the zone:
+#   Dashboard → madeby.my.id → Rules → Cache Rules (Cache-Control below)
+#   Dashboard → madeby.my.id → Rules → Transform Rules → Modify Response Header
+#     (security headers below)
 #
-# See docs/cache-strategy.md for setup instructions.
-#
-# This file documents the intended cache policy for reference and can be used
-# directly if the site is migrated to Cloudflare Pages in the future.
+# This file documents the intended policy and can be used directly if the
+# site is migrated to Cloudflare Pages (which honors _headers natively).
+
+# Accepted risk (2026-08): style-src 'unsafe-inline' stays because TanStack
+# Virtual row transforms and tooltip positioning need inline style attributes;
+# see SECURITY.md threat-model note. When CF_BEACON_TOKEN is set at build
+# time, also add https://static.cloudflareinsights.com to script-src (and
+# https://cloudflareinsights.com to connect-src).
 
 /*
-  Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.bunny.net; font-src https://fonts.bunny.net; img-src 'self' https: data:; connect-src 'self' https://cors.mefi.workers.dev; form-action 'self'
+  Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.bunny.net; font-src https://fonts.bunny.net; img-src 'self' https: data:; connect-src 'self' https://cors.mefi.workers.dev; form-action 'self'; upgrade-insecure-requests
   Permissions-Policy: camera=(), microphone=(), geolocation=()
   Referrer-Policy: strict-origin-when-cross-origin
   Strict-Transport-Security: max-age=31536000

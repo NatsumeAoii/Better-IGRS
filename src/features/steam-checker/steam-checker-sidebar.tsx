@@ -11,7 +11,7 @@ import {
   findGameByName,
   buildSteamRatingComparison,
   parseSteamRatingFlag,
-  steamIgrsDescriptorIdsFromText,
+  matchDescriptorNamesInText,
   steamRatingToIgrsId
 } from '@/shared/lib/steam-domain';
 import { descriptorName, ratingTitle } from '@/shared/lib/ratings';
@@ -51,7 +51,7 @@ export function SteamCheckerSidebar({
   const checker = computeSteamChecker(meta, steamMeta, steamGame);
   const referenceRatingId = localMatch?.ratings?.[0] || null;
   const steamRatingId = steamRatingToIgrsId(steamRating);
-  const steamRatingDescriptorIds = steamIgrsDescriptorIdsFromText(meta, steamRating?.descriptors || '', lang);
+  const steamRatingDescriptorIds = matchDescriptorNamesInText(meta, steamRating?.descriptors || '', lang);
   const comparison = buildSteamRatingComparison({
     computedDescriptorIds: checker.mappedDescriptorIds,
     computedRatingId: checker.computedRatingId,
@@ -135,10 +135,10 @@ export function SteamCheckerSidebar({
         <div className={styles.checkerMeta}>
           {releaseDate ? <div className={styles.metaRow}><strong>{t('steamchecker.release')}:</strong> {releaseDate}</div> : null}
           {extras.requiredAge > 0 ? <div className={styles.metaRow}><strong>{t('steamchecker.requiredAge')}:</strong> {extras.requiredAge}+</div> : null}
-          {extras.isBanned ? <div className={styles.metaRow}><strong>{t('steamchecker.banned')}:</strong> Yes</div> : null}
+          {extras.isBanned ? <div className={styles.metaRow}><strong>{t('steamchecker.banned')}:</strong> {t('steamchecker.yes')}</div> : null}
           {extras.metacritic ? (
             <div className={styles.metaRow}>
-              <strong>Metacritic:</strong>{' '}
+              <strong>{t('steamchecker.metacritic')}:</strong>{' '}
               {extras.metacritic.url
                 ? <a className={styles.supportLink} href={extras.metacritic.url} target="_blank" rel="noopener noreferrer">{extras.metacritic.score}/100</a>
                 : <span>{extras.metacritic.score}/100</span>}
@@ -146,27 +146,27 @@ export function SteamCheckerSidebar({
           ) : null}
           {extras.price ? (
             <div className={styles.metaRow}>
-              <strong>{extras.isFree ? 'Free to Play' : 'Price'}:</strong>{' '}
-              {extras.isFree ? 'Free' : extras.price.formattedFinal || `${(extras.price.final / 100).toFixed(2)} ${extras.price.currency}`}
+              <strong>{extras.isFree ? t('steamchecker.freeToPlay') : t('steamchecker.price')}:</strong>{' '}
+              {extras.isFree ? t('steamchecker.free') : extras.price.formattedFinal || `${(extras.price.final / 100).toFixed(2)} ${extras.price.currency}`}
               {extras.price.discountPercent > 0 ? <span>-{extras.price.discountPercent}%</span> : null}
             </div>
           ) : extras.isFree ? (
-            <div className={styles.metaRow}><strong>Price:</strong> Free to Play</div>
+            <div className={styles.metaRow}><strong>{t('steamchecker.price')}:</strong> {t('steamchecker.freeToPlay')}</div>
           ) : null}
           {extras.genres.length > 0 ? (
             <div className={styles.metaRow}>
-              <strong>Genres:</strong>{' '}
+              <strong>{t('steamchecker.genres')}:</strong>{' '}
               <span>{extras.genres.map(g => g.description).join(', ')}</span>
             </div>
           ) : null}
           {extras.categories.length > 0 ? (
             <div className={styles.metaRow}>
-              <strong>Categories:</strong>{' '}
+              <strong>{t('steamchecker.categories')}:</strong>{' '}
               <span>{extras.categories.slice(0, 5).map(c => c.description).join(', ')}{extras.categories.length > 5 ? ` +${extras.categories.length - 5}` : ''}</span>
             </div>
           ) : null}
           <div className={styles.metaRow}>
-            <strong>Platforms:</strong>{' '}
+            <strong>{t('steamchecker.platforms')}:</strong>{' '}
             {[extras.platforms.windows && 'Windows', extras.platforms.mac && 'macOS', extras.platforms.linux && 'Linux'].filter(Boolean).join(', ') || '-'}
           </div>
           {supportUrl ? (

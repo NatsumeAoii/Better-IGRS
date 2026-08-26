@@ -76,6 +76,13 @@ export function findRelatedGames(
     }
     if (sharedDescriptorCount === 0) continue;
 
+    // Bonus for same publisher (#6.6)
+    if (game.publisherName === currentGame.publisherName) sharedDescriptorCount += 2;
+
+    // Bonus for year proximity (#6.6)
+    const yearDiff = Math.abs((game.releaseYear || 0) - (currentGame.releaseYear || 0));
+    if (yearDiff <= 2) sharedDescriptorCount += (3 - yearDiff);
+
     // Skip candidates that can't make it into the top-N
     if (scored.length >= maxResults && sharedDescriptorCount < minKeptScore) continue;
 

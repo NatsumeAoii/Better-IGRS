@@ -1,3 +1,5 @@
+import { esc } from '@/core/safe-render';
+
 const SMALL_WORDS = new Set(['a', 'an', 'and', 'as', 'at', 'but', 'by', 'for', 'from', 'in', 'into', 'of', 'on', 'or', 'the', 'to', 'with']);
 
 interface SteamDescriptionSection {
@@ -11,14 +13,8 @@ interface ParsedSteamDescription {
   sections: SteamDescriptionSection[];
 }
 
-function escapeHtml(value: unknown): string {
-  return String(value)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
+const HEADING_TITLE_CASE_THRESHOLD = 0.75;
+const MAX_HEADING_LENGTH = 64;
 
 function cleanLine(value: unknown): string {
   return String(value || '')
@@ -55,12 +51,12 @@ function titleCaseRatio(line: string): number {
 
 function isLikelyHeading(line: string, nextLine: string): boolean {
   if (!nextLine || isExplicitListItem(line)) return false;
-  if (line.length > 64) return false;
+  if (line.length > MAX_HEADING_LENGTH) return false;
   if (!/[a-z]/i.test(line)) return false;
   if (/[.!?)]$/.test(line)) return false;
   if (isLikelyListValue(line)) return false;
   if (/:$/.test(line)) return true;
-  return titleCaseRatio(line) >= 0.75;
+  return titleCaseRatio(line) >= HEADING_TITLE_CASE_THRESHOLD;
 }
 
 function shouldAppendToPreviousListItem(line: string, section: SteamDescriptionSection | null): boolean {
@@ -123,12 +119,12 @@ function parseSteamDescription(text: unknown): ParsedSteamDescription {
 }
 
 function renderParagraphs(items: string[]): string {
-  return items.map(item => `<p>${escapeHtml(item)}</p>`).join('');
+  return items.map(item => `<p>${esc(item)}</p>`).join('');
 }
 
 function renderList(items: string[]): string {
   if (!items.length) return '';
-  return `<ul class="steam-description-list">${items.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul>`;
+  return `<ul class="steam-description-list">${items.map(item => `<li>${esc(item)}</li>`).join('')}</ul>`;
 }
 
 export function renderSteamDescription(text: unknown): string {
@@ -138,7 +134,7 @@ export function renderSteamDescription(text: unknown): string {
     : '';
   const sectionsHtml = sections.map(section => `
     <section class="steam-description-section">
-      <h3>${escapeHtml(section.heading)}</h3>
+      <h3>${esc(section.heading)}</h3>
       ${renderParagraphs(section.paragraphs)}
       ${renderList(section.list)}
     </section>

@@ -1,5 +1,6 @@
 /**
  * Platform helpers for IGRS metadata lookups.
+ * Re-exports from core for convenience; import from @/core/game-extractors directly if tree-shaking matters.
  */
 import type { IgrsMeta, Language } from '@/shared/types';
 

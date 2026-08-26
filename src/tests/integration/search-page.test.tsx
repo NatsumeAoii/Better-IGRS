@@ -91,7 +91,7 @@ describe('SearchPage filters', () => {
       </MemoryRouter>
     );
 
-    const cards = screen.getAllByRole('button', { name: /Game/ });
+    const cards = screen.getAllByRole('link', { name: /Game/ });
     expect(cards[0]).toHaveTextContent('Beta Game');
     expect(cards[1]).toHaveTextContent('Alpha Game');
   });

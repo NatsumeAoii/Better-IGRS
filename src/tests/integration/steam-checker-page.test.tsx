@@ -55,6 +55,9 @@ vi.mock('@/shared/api/steam-api', () => ({
 
 describe('SteamCheckerPage request ordering', () => {
   beforeEach(() => {
+    // The page persists history + last results in sessionStorage (#4);
+    // isolate each test from previously cached state.
+    sessionStorage.clear();
     steamApiMock.fetchSteamAppDetails.mockReset();
     steamApiMock.fetchSteamReviewSummary.mockReset();
     steamApiMock.fetchSteamReviewSummary.mockResolvedValue(null);

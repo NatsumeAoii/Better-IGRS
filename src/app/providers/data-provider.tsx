@@ -21,14 +21,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<Error | null>(null);
   const [loading, setLoading] = useState(false);
   const loadedUnlockedRef = useRef<boolean | null>(null);
-
   // Sync React state when the client emits new data
   useEffect(() => {
-    const unsubscribe = client.subscribe(nextData => {
-      setData(nextData);
+    const unsubscribe = client.subscribe((nextData, options) => {
+      if (options.unlocked === unlocked) {
+        setData(nextData);
+      }
     });
     return unsubscribe;
-  }, []);
+  }, [unlocked]);
 
   const ensureData = useCallback(async () => {
     const cached = client.getCached({ unlocked });

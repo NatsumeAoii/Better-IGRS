@@ -11,7 +11,7 @@ import { platformIdsFromGame } from '@/shared/lib/platforms';
 import type { IgrsGame, IgrsMeta, SearchIndex, SearchIndexItem } from '@/shared/types';
 import type { SerializedSearchIndexItem, WorkerError, WorkerMessage, WorkerResponse } from '@/core/search-index.worker';
 
-const WORKER_TIMEOUT_MS = 30_000;
+const WORKER_TIMEOUT_MS = 10_000;
 
 interface UseSearchIndexResult {
   index: SearchIndex | null;
@@ -25,6 +25,7 @@ function reconstructIndex(items: SerializedSearchIndexItem[]): SearchIndexItem[]
     game: item.game,
     nameNorm: item.nameNorm,
     publisherNorm: item.publisherNorm,
+    descNorm: item.descNorm || '',
     ratingIds: item.ratingIds,
     descriptorIds: item.descriptorIds,
     platformIds: item.platformIds,
@@ -92,10 +93,10 @@ export function useSearchIndex(games: IgrsGame[] | null, meta: IgrsMeta | null):
       workerRef.current = worker;
 
       timeoutRef.current = setTimeout(() => {
-        console.error('[useSearchIndex] Worker timed out after 30 seconds');
+        console.error('[useSearchIndex] Worker timed out after 10 seconds');
         cleanup();
         setLoading(false);
-        setError(new Error('Search index creation timed out after 30 seconds'));
+        setError(new Error('Search index creation timed out after 10 seconds'));
       }, WORKER_TIMEOUT_MS);
 
       worker.onmessage = (event: MessageEvent<WorkerResponse | WorkerError>) => {

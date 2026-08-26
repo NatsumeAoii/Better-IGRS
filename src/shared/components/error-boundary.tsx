@@ -17,6 +17,8 @@ interface ErrorBoundaryProps {
    * When omitted, errors are logged to console.error as a fallback.
    */
   onError?: ErrorReporter;
+  /** Optional translation function for localized fallback strings */
+  t?: (key: string) => string;
   children: ReactNode;
 }
 
@@ -51,18 +53,21 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       if (this.props.fallback) {
         return this.props.fallback({ error, resetError: this.resetError });
       }
-      return <DefaultErrorFallback error={error} resetError={this.resetError} />;
+      return <DefaultErrorFallback resetError={this.resetError} t={this.props.t} />;
     }
     return this.props.children;
   }
 }
 
-function DefaultErrorFallback({ error, resetError }: { error: Error; resetError: () => void }) {
+// ponytail: class component has no access to LanguageProvider context;
+// static English strings acceptable for error fallback.
+// Upgrade to render-prop or forwardRef wrapper when third language is added.
+function DefaultErrorFallback({ resetError, t }: { resetError: () => void; t?: (key: string) => string }) {
   return (
     <div className="error-boundary-fallback" role="alert">
-      <h2>Something went wrong</h2>
-      <p>{error.message}</p>
-      <button type="button" onClick={resetError}>Try again</button>
+      <h2>{t?.('error.somethingWrong') ?? 'Something went wrong'}</h2>
+      <p>{t?.('error.safeDescription') ?? 'The page could not be rendered safely. Try again or reload the page.'}</p>
+      <button type="button" onClick={resetError}>{t?.('error.tryAgain') ?? 'Try again'}</button>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { Check, Copy, Search } from 'lucide-react';
+import { Check, Copy, Search, User } from 'lucide-react';
 import { useMemo, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { IGRS_LOGO_URL } from '@/core/constants';
@@ -9,7 +9,7 @@ import { copyTextToClipboard } from '@/shared/lib/clipboard';
 import { descriptorIdsFromGame, ratingIdsFromGame, ratingName, ratingTitle } from '@/shared/lib/ratings';
 import { platformIdsFromGame, platformName } from '@/shared/lib/platforms';
 import { findRelatedGames } from '@/shared/lib/related-games';
-import { formatExtraField } from '@/shared/lib/html';
+import { formatExtraField } from '@/shared/lib/extra-field';
 import type { IgrsGame, IgrsMeta, SteamSearchResult } from '@/shared/types';
 
 interface GameDetailViewProps {
@@ -20,10 +20,14 @@ interface GameDetailViewProps {
   meta: IgrsMeta;
   steamMatch: SteamSearchResult | null;
   t: (key: string) => string;
+  /** Developer unlock — reveals the raw data inspector outside dev mode (#34) */
+  unlocked?: boolean;
 }
 
-export function GameDetailView({ allGames, game, lang, meta, steamMatch, t }: GameDetailViewProps) {
+export function GameDetailView({ allGames, game, lang, meta, steamMatch, t, unlocked }: GameDetailViewProps) {
   const [copied, setCopied] = useState(false);
+  const [copiedId, setCopiedId] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const ratingId = ratingIdsFromGame(game)[0] || null;
   const ratingIds = ratingIdsFromGame(game);
   const descriptorIds = descriptorIdsFromGame(game);
@@ -33,33 +37,72 @@ export function GameDetailView({ allGames, game, lang, meta, steamMatch, t }: Ga
 
   const relatedGames = useMemo(() => {
     if (!allGames) return [];
+    // Scoring considers shared descriptors + publisher + year proximity
     return findRelatedGames(game, allGames);
   }, [game, allGames]);
 
   const copyShareUrl = async () => {
-    if (await copyTextToClipboard(`${window.location.origin}/game/${game.id}`)) {
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: game.name, url: window.location.href });
+      } catch { /* user cancelled */ }
+    } else if (await copyTextToClipboard(`${window.location.origin}/game/${game.id}`)) {
       setCopied(true);
       window.setTimeout(() => setCopied(false), 2000);
     }
   };
 
+  const copyGameId = async () => {
+    if (await copyTextToClipboard(String(game.id))) {
+      setCopiedId(true);
+      window.setTimeout(() => setCopiedId(false), 2000);
+    }
+  };
+
+  const isLong = (game.description || '').length > 300;
+  const displayText = isLong && !expanded ? game.description!.slice(0, 300) + '...' : (game.description || t('detail.noDesc'));
+  // Item #33: flag entries missing descriptors and/or platforms as incomplete.
+  const dataIncomplete = !game.descriptors?.length || !game.platforms?.length;
+  const steamCoverAppId = steamMatch?.status === 'match' ? steamMatch.match.appId : null;
+
   return (
     <div className="detail-card fade-in">
+      {steamCoverAppId ? <SteamCoverImage appId={steamCoverAppId} /> : null}
       <div className="detail-header">
         <div>
           <div className="detail-title">{game.name}</div>
-          <div className="detail-publisher">{game.publisherName}</div>
+          <Link to={`/search/?publisher=${encodeURIComponent(game.publisherName)}`} className="detail-publisher">
+            {game.publisherName}
+          </Link>
+          {dataIncomplete && <span className="detail-incomplete-badge">{t('detail.dataIncomplete')}</span>}
         </div>
         {ratingId ? <span className="rating-badge" data-rating={ratingId}>{ratingName(meta, ratingId)}</span> : null}
       </div>
-      <p className="detail-description">{game.description || t('detail.noDesc')}</p>
+      <p className="detail-description">
+        {displayText}
+        {isLong && (
+          <button type="button" className="detail-toggle-btn" onClick={() => setExpanded(!expanded)}>
+            {expanded ? t('detail.showLess') : t('detail.showMore')}
+          </button>
+        )}
+      </p>
       <div className="detail-grid">
-        <DetailRow label={t('detail.publisher')}>{game.publisherName}</DetailRow>
-        <DetailRow label={t('detail.year')}>{game.releaseYear}</DetailRow>
+        <DetailRow label={t('detail.year')}>
+          {game.releaseYear}
+          {game.releaseYear > new Date().getFullYear() && <span className="detail-upcoming-badge">{t('detail.upcoming')}</span>}
+        </DetailRow>
         <DetailRow label={t('detail.platforms')}>{platformText || '-'}</DetailRow>
         <DetailRow label={t('detail.rating')}>{ratingIds.map(id => ratingTitle(meta, id, lang)).join(', ') || '-'}</DetailRow>
         <DetailRow label={t('detail.descriptors')}>
           <DescriptorIcons ids={descriptorIds} emptyLabel={t('detail.noDescriptors')} lang={lang} meta={meta} />
+        </DetailRow>
+        <DetailRow label={t('detail.igrsId')}>
+          <button type="button" className="detail-id-copy" onClick={() => void copyGameId()} title={t('detail.copyId')}>
+            {copiedId ? <Check className="ui-icon" aria-hidden="true" /> : <Copy className="ui-icon" aria-hidden="true" />}
+            <span>{game.id}</span>
+            <span className="sr-only">{t('detail.copyId')}</span>
+          </button>
+          <span aria-live="polite" className="sr-only">{copiedId ? t('detail.copied') : ''}</span>
         </DetailRow>
         {video ? <DetailLinkRow label={t('detail.video')} value={video} /> : null}
         {inGame ? <DetailLinkRow label={t('detail.ingame')} value={inGame} /> : null}
@@ -69,6 +112,11 @@ export function GameDetailView({ allGames, game, lang, meta, steamMatch, t }: Ga
           {copied ? <Check className="ui-icon" aria-hidden="true" /> : <Copy className="ui-icon" aria-hidden="true" />}
           <span>{copied ? t('detail.copied') : t('detail.share')}</span>
         </button>
+        <span aria-live="polite" className="sr-only">{copied ? t('detail.copied') : ''}</span>
+        <Link className="detail-link-btn" to={`/search/?publisher=${encodeURIComponent(game.publisherName)}`}>
+          <User className="ui-icon" aria-hidden="true" />
+          <span>{t('detail.viewPublisher').replace('{publisher}', game.publisherName)}</span>
+        </Link>
         <a className="detail-link-btn" href={`https://igrs.id/game-detail/${game.id}`} target="_blank" rel="noopener noreferrer">
           <img src={IGRS_LOGO_URL} alt="" aria-hidden="true" />
           <span>{t('detail.openIgrs')}</span>
@@ -82,7 +130,36 @@ export function GameDetailView({ allGames, game, lang, meta, steamMatch, t }: Ga
       {relatedGames.length > 0 && (
         <RelatedGamesSection games={relatedGames} meta={meta} t={t} />
       )}
+      {(import.meta.env.DEV || unlocked) && (
+        <details className="detail-raw-data">
+          <summary>{t('detail.rawData')}</summary>
+          <pre style={{ fontSize: '0.75rem', overflow: 'auto', maxHeight: '400px', padding: '1rem', background: 'var(--bg)', borderRadius: 'var(--radius-sm)' }}>
+            {JSON.stringify(game, null, 2)}
+          </pre>
+        </details>
+      )}
     </div>
+  );
+}
+
+/**
+ * Progressive enhancement (#32): when a Steam match is known, show the game's
+ * Steam header artwork. Hidden automatically if the CDN request fails.
+ */
+function SteamCoverImage({ appId }: { appId: string }) {
+  const [failed, setFailed] = useState(false);
+  const url = safeHttpUrl(`https://cdn.cloudflare.steamstatic.com/steam/apps/${encodeURIComponent(appId)}/header.jpg`);
+  if (failed || !url) return null;
+  return (
+    <img
+      className="detail-steam-cover"
+      src={url.href}
+      alt=""
+      loading="lazy"
+      width={460}
+      height={215}
+      onError={() => setFailed(true)}
+    />
   );
 }
 

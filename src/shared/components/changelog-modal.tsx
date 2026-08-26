@@ -1,5 +1,6 @@
-import { ChevronDown, X } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { ChevronDown, ExternalLink, X } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useLanguage } from '@/app/providers/language-provider';
 import changelogRaw from '../../../CHANGELOG.md?raw';
 
 const GITHUB_REPO = 'https://github.com/NatsumeAoii/IGRS2nd';
@@ -83,11 +84,20 @@ interface ChangelogModalProps {
 }
 
 export function ChangelogModal({ onClose }: ChangelogModalProps) {
+  const { t } = useLanguage();
   const [expanded, setExpanded] = useState(false);
   const entries = useMemo(() => parseChangelog(changelogRaw), []);
   const hasMore = entries.length > INITIAL_VISIBLE_COUNT;
   const hiddenCount = entries.length - INITIAL_VISIBLE_COUNT;
   const visibleEntries = expanded ? entries : entries.slice(0, INITIAL_VISIBLE_COUNT);
+  const modalRef = useRef<HTMLDivElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+
+  // Move focus into the dialog on open so keyboard/screen-reader users start
+  // inside the trap (same pattern as mobile-nav).
+  useEffect(() => {
+    closeButtonRef.current?.focus();
+  }, []);
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
@@ -102,12 +112,34 @@ export function ChangelogModal({ onClose }: ChangelogModalProps) {
     return () => { document.body.style.overflow = ''; };
   }, []);
 
+  // Focus trap (#10.2): cycle Tab/Shift+Tab within the modal
+  useEffect(() => {
+    function handleFocusTrap(event: KeyboardEvent) {
+      if (event.key !== 'Tab') return;
+      const modal = modalRef.current;
+      if (!modal) return;
+      const focusable = modal.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey) {
+        if (document.activeElement === first) { event.preventDefault(); last?.focus(); }
+      } else {
+        if (document.activeElement === last) { event.preventDefault(); first?.focus(); }
+      }
+    }
+    document.addEventListener('keydown', handleFocusTrap);
+    return () => document.removeEventListener('keydown', handleFocusTrap);
+  }, []);
+
   return (
-    <div className="changelog-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-label="Changelog">
-      <div className="changelog-modal" onClick={event => event.stopPropagation()}>
+    <div className="changelog-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-label={t('changelog.title')}>
+      <div className="changelog-modal" ref={modalRef} onClick={event => event.stopPropagation()}>
         <div className="changelog-header">
-          <h2 className="changelog-title">Changelog</h2>
-          <button className="changelog-close" type="button" onClick={onClose} aria-label="Close">
+          <h2 className="changelog-title">{t('changelog.title')}</h2>
+          <button className="changelog-close" type="button" onClick={onClose} aria-label={t('changelog.close')} ref={closeButtonRef}>
             <X className="ui-icon" aria-hidden="true" />
           </button>
         </div>
@@ -124,13 +156,14 @@ export function ChangelogModal({ onClose }: ChangelogModalProps) {
               aria-expanded={false}
             >
               <ChevronDown className="ui-icon" aria-hidden="true" />
-              <span>Show {hiddenCount} older {hiddenCount === 1 ? 'version' : 'versions'}</span>
+              <span>{t('changelog.showOlder').replace('{count}', String(hiddenCount))}</span>
             </button>
           )}
 
           <div className="changelog-footer-link">
             <a href={`${GITHUB_REPO}/blob/main/CHANGELOG.md`} target="_blank" rel="noopener noreferrer">
-              View full changelog on GitHub →
+              <span>{t('changelog.viewGithub')}</span>
+              <ExternalLink className="ui-icon" aria-hidden="true" style={{ display: 'inline', verticalAlign: '-0.125em', marginInlineStart: '0.25rem' }} />
             </a>
           </div>
         </div>

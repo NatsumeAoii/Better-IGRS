@@ -10,7 +10,7 @@ interface SearchExtractors {
   getRatingIds?: (game: IgrsGame) => unknown;
 }
 
-interface FilterOptions {
+export interface FilterOptions {
   descriptors?: Set<number>;
   limit?: number;
   platforms?: Set<number>;
@@ -152,13 +152,28 @@ function matchIndexedItem(item: SearchIndexItem, context: FilterContext): number
 
   if (!setHasAny(item.ratingIdSet, context.ratings)) return null;
   if (!setHasEvery(item.platformIdSet, context.platforms)) return null;
-  if (!setHasEvery(item.descriptorIdSet, context.descriptors)) return null;
+
+  if (context.descriptors.size > 0) {
+    if (context.descriptors.has(-1)) {
+      const normalDescriptors = new Set([...context.descriptors].filter(d => d !== -1));
+      const hasNoDescriptors = item.descriptorIdSet.size === 0;
+      if (normalDescriptors.size === 0) {
+        if (!hasNoDescriptors) return null;
+      } else {
+        if (!hasNoDescriptors && !setHasEvery(item.descriptorIdSet, normalDescriptors)) return null;
+      }
+    } else {
+      if (!setHasEvery(item.descriptorIdSet, context.descriptors)) return null;
+    }
+  }
   if (context.years.size && !context.years.has(item.year)) return null;
 
   if (context.query) {
-    const queryScore = scorePreNormalizedWithContext(context.query, context.queryWords, item.nameNorm);
-    if (queryScore <= 15) return null;
-    score = queryScore;
+    const nameScore = scorePreNormalizedWithContext(context.query, context.queryWords, item.nameNorm);
+    const descScore = scorePreNormalizedWithContext(context.query, context.queryWords, item.descNorm);
+    const bestTextScore = Math.max(nameScore, descScore * 0.5);
+    if (bestTextScore <= 15) return null;
+    score = bestTextScore;
   }
 
   if (context.publisher) {
@@ -212,6 +227,8 @@ export function fuzzyScoreNormalized(query: string, text: string): number {
  *
  * Caches the last query split to avoid repeated allocations in tight loops
  * where the same query is scored against many targets.
+ *
+ * @warning Callers must not interleave different queries — the cache stores only the last query.
  *
  * @param q - Pre-normalized query string
  * @param t - Pre-normalized target string
@@ -280,6 +297,7 @@ export function createGameSearchIndex(gameList: IgrsGame[], extractors: SearchEx
       game,
       nameNorm: normalizeSearchText(game.name),
       publisherNorm: normalizeSearchText(game.publisherName),
+      descNorm: normalizeSearchText((game.description || '').slice(0, 200)),
       ratingIds,
       descriptorIds,
       platformIds,

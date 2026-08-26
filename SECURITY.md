@@ -7,7 +7,7 @@
 | Current repository state and active deployment at `https://igrs.madeby.my.id/` | Yes |
 | Older commits, generated data snapshots, or unpublished local builds | No guaranteed support |
 
-The package manifest currently reports version `0.0.2`. Confirm the release policy with a maintainer before relying on version-specific support promises.
+The package manifest currently reports version `0.0.5`. Confirm the release policy with a maintainer before relying on version-specific support promises.
 
 ## Reporting a Vulnerability
 
@@ -47,7 +47,10 @@ No fixed acknowledgement SLA is configured in this checkout. Maintainers should 
 - The local Node static server rejects path traversal, hidden path segments, and unsupported HTTP methods.
 - The Vite dev server includes a hidden-path guard for dot-prefixed request paths.
 - The Cloudflare Worker fetches public JSON data from `SITE_ORIGIN`, caches it briefly, and renders escaped preview metadata for `/game/*`.
+- The Worker's `/proxy/steam/*` route is a strict allowlisted pass-through to `https://store.steampowered.com` (GET-only, fixed upstream origin, no open relay); review any change to its path allowlist carefully.
 - The data refresh workflow fetches public IGRS endpoints and commits generated JSON when data changes; review workflow changes carefully because generated public data is rendered by the app.
+- Analytics (when enabled via the `CF_BEACON_TOKEN` build variable) use the cookieless Cloudflare Web Analytics beacon: it collects no personal data, does not fingerprint visitors, and stores no cookies or client-side state. As with any analytics beacon, deployers serving EU visitors should confirm their own ePrivacy position before enabling.
+- Accepted risk (2026-08): the deployed CSP keeps `style-src 'unsafe-inline'` because TanStack Virtual's row transforms and tooltip positioning require inline `style=` attributes, and `'unsafe-hashes'` hashes are bundler-fragile. Style-attribute injection is a materially lower-severity vector than script injection; `script-src 'self'` (no unsafe-inline) already blocks the dangerous class. Revisit only if the threat model changes.
 
 ## Security Hygiene for Changes
 

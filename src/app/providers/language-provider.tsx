@@ -89,6 +89,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     if (count >= 28 && !readUnlocked()) {
       writeLocalStorage(SECRET_KEY, '1');
       setUnlocked(true);
+      // User-facing feedback is handled by the AppShell unlock toast.
     }
   }, []);
 

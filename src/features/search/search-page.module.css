@@ -3,7 +3,7 @@
    ═══════════════════════════════════════════════════════════════ */
 
 .searchSection {
-  background: rgba(255, 255, 255, 0.9);
+  background: var(--bg-card);
   border: 1.5px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
@@ -14,15 +14,18 @@
 .searchRow {
   display: flex;
   gap: 0.6rem;
+  flex-wrap: wrap;
 }
 
 .searchBar {
   position: relative;
   flex: 1;
+  min-width: 200px;
 }
 
 .publisherBar {
   flex: 0 0 220px;
+  min-width: 180px;
 }
 
 .searchBarIcon {
@@ -66,6 +69,32 @@
   font-size: 0.75rem;
   color: var(--text-muted);
   font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.exportBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.7rem;
+  font-family: inherit;
+  font-weight: 600;
+  color: var(--primary);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s;
+  line-height: 1;
+}
+
+.exportBtn:hover {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
 }
 
 .searchStats strong {
@@ -91,7 +120,7 @@
 
 /* ─── Empty State ───────────────────────────────────────────── */
 .emptyState {
-  background: rgba(255, 255, 255, 0.72);
+  background: var(--bg-card);
   border: 1.5px solid var(--border);
   border-radius: var(--radius);
   text-align: center;
@@ -121,6 +150,17 @@
 
 .emptyStateDesc {
   font-size: 0.8rem;
+}
+
+.emptyStateContext {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 0.5rem;
+}
+
+.emptyStateContext strong {
+  color: var(--text);
+  font-weight: 600;
 }
 
 .emptyClearBtn {
@@ -231,6 +271,46 @@
   opacity: 0.7;
 }
 
+/* ─── Inline Detail Prev/Next Navigation (#14) ───────────────── */
+.detailNavRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-4);
+}
+
+.detailNavRow .detailBack {
+  margin-bottom: 0;
+}
+
+.detailNavButtons {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.detailNavButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-height: 44px;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.78rem;
+  font-family: inherit;
+  font-weight: 600;
+  color: var(--primary);
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.detailNavButton:hover {
+  border-color: var(--primary);
+}
+
 /* ─── Fade In Animation ─────────────────────────────────────── */
 .fadeIn {
   animation: fadeInAnim 0.25s var(--ease);
@@ -255,7 +335,40 @@
 
   .publisherBar {
     flex: 1;
+    min-width: 0;
   }
+
+  .searchBar {
+    min-width: 0;
+  }
+}
+
+/* ─── Copy Search Link ────────────────────────────────────── */
+.copySearchLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.35rem 0.7rem;
+  margin-top: var(--space-1);
+  font-size: 0.72rem;
+  font-family: inherit;
+  font-weight: 600;
+  color: var(--primary);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.copySearchLink:hover {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+
+.copyIcon {
+  flex-shrink: 0;
 }
 
 /* ─── Keyboard Shortcut Hint ────────────────────────────────── */
@@ -296,3 +409,120 @@
     display: none;
   }
 }
+
+/* ─── Results Per Page Toggle ─────────────────────────────── */
+.rppToggle {
+  display: flex;
+  gap: 0.25rem;
+  margin-bottom: var(--space-2, 8px);
+}
+
+.rppBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  height: 32px;
+  padding: 0 0.5rem;
+  font-size: 0.72rem;
+  font-family: inherit;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.rppBtn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.rppBtnActive {
+  background: var(--primary);
+  color: var(--color-surface);
+  border-color: var(--primary);
+}
+
+/* ─── Typo Suggestion ─────────────────────────────────────── */
+.typoSuggestion {
+  margin-top: var(--space-4);
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.typoLink {
+  background: none;
+  border: none;
+  color: var(--primary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.typoLink:hover {
+  opacity: 0.7;
+}
+
+/* ─── Publisher Autocomplete ─────────────────────────────── */
+.autocompleteList {
+  position: absolute;
+  top: 100%;
+  inset-inline-start: 0;
+  inset-inline-end: 0;
+  z-index: 10;
+  margin: 4px 0 0;
+  padding: 0.3rem 0;
+  list-style: none;
+  background: var(--bg-card);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.autocompleteItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.82rem;
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.autocompleteItem:hover {
+  background: var(--bg);
+}
+
+.autocompleteCount {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg);
+  border-radius: 999px;
+  padding: 0.1rem 0.45rem;
+}
+
+.skeletonGrid {
+  display: grid;
+  gap: var(--card-gap);
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) {
+  .skeletonGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+

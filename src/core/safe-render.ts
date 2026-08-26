@@ -20,6 +20,14 @@ export function safeHttpUrl(value: unknown): URL | null {
   }
 }
 
+/**
+ * Generates a safe HTML anchor string for external links.
+ * All values are HTML-escaped to prevent injection.
+ * 
+ * @warning Callers must not inject unescaped user content into the label parameter.
+ *          If passing the result to dangerouslySetInnerHTML, this function's escaping
+ *          is sufficient — do not double-escape.
+ */
 export function safeExternalLink(value: unknown, label: unknown = value): string {
   const url = safeHttpUrl(value);
   if (!url) return '';

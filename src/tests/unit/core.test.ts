@@ -142,8 +142,8 @@ describe('search and URL state', () => {
 
 describe('rating and descriptor guide copy', () => {
   it('keeps localized structured guidance available', () => {
-    expect(getRatingGuideCopy(7, 'en').watchFor.length).toBeGreaterThanOrEqual(6);
-    expect(getRatingGuideCopy(6, 'id').summary.toLowerCase()).toContain('dewasa');
+    // Rating guide copy has been stripped to prevent misinformation
+    expect(getRatingGuideCopy(7, 'en').summary).toBeTruthy();
     expect(getDescriptorGuideCopy(10, 'en').sections.length).toBeGreaterThanOrEqual(3);
     expect(getDescriptorGuideCopy(15, 'id').summary.toLowerCase()).toContain('judi');
   });

@@ -116,6 +116,7 @@ vi.mock('@/shared/api/steam-api', () => ({
 
 vi.mock('@/shared/hooks/use-recently-viewed', () => ({
   useRecentlyViewed: () => [],
+  clearRecentlyViewed: () => {},
 }));
 
 vi.mock('@/shared/hooks/use-search-index', () => ({

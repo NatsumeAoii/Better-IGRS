@@ -1,4 +1,4 @@
-name = "igayrsbackend"
+name = "igrs-preview-worker"
 main = "worker.ts"
 compatibility_date = "2026-04-11"
 
@@ -9,13 +9,21 @@ SITE_ORIGIN = "https://igrs.madeby.my.id"
 pattern = "igrs.madeby.my.id/game/*"
 zone_name = "madeby.my.id"
 
+[[routes]]
+pattern = "igrs.madeby.my.id/proxy/steam/*"
+zone_name = "madeby.my.id"
+
 # Staging environment — deploy with: wrangler deploy --env staging
 [env.staging]
-name = "igayrsbackend-staging"
+name = "igrs-preview-worker-staging"
 
 [env.staging.vars]
 SITE_ORIGIN = "https://staging-igrs.madeby.my.id"
 
 [[env.staging.routes]]
 pattern = "staging-igrs.madeby.my.id/game/*"
+zone_name = "madeby.my.id"
+
+[[env.staging.routes]]
+pattern = "staging-igrs.madeby.my.id/proxy/steam/*"
 zone_name = "madeby.my.id"

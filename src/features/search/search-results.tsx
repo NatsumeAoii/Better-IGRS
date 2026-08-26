@@ -1,15 +1,19 @@
-import { memo, useEffect, useRef } from 'react';
+import { memo, useEffect, useMemo, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { Gamepad2 } from 'lucide-react';
+import { ExternalLink, Gamepad2 } from 'lucide-react';
 import { DescriptorIcons } from '@/shared/components/descriptor-icons';
 import { highlight } from '@/shared/lib/text';
 import { descriptorIdsFromGame, ratingIdsFromGame, ratingName } from '@/shared/lib/ratings';
 import { platformIdsFromGame, platformName } from '@/shared/lib/platforms';
 import { SearchSuggestions } from '@/features/search/search-suggestions-panel';
 import type { Suggestion } from '@/features/search/search-suggestions';
+import type { createSteamApi } from '@/shared/api/steam-api';
 import type { IgrsGame, IgrsMeta } from '@/shared/types';
 import pageStyles from './search-page.module.css';
 import cardStyles from './game-card.module.css';
+
+type SteamApi = ReturnType<typeof createSteamApi>;
 
 /** Estimated initial height; actual virtual rows are measured after render. */
 const ESTIMATED_CARD_HEIGHT = 132;
@@ -24,23 +28,48 @@ interface GameCardProps {
   game: IgrsGame;
   lang: 'en' | 'id';
   meta: IgrsMeta;
-  onOpen: () => void;
   publisherQuery: string;
   query: string;
   t: (key: string) => string;
+  /** Optional Steam API facade — enables the quick Steam-check link when a match is already cached (#29) */
+  steamApi?: SteamApi;
 }
 
-const GameCard = memo(function GameCard({ game, lang, meta, onOpen, publisherQuery, query, t }: GameCardProps) {
-  const ratingId = ratingIdsFromGame(game)[0] || null;
-  const descriptorIds = descriptorIdsFromGame(game).slice(0, 4);
-  const platformNames = platformIdsFromGame(meta, game).map(id => platformName(meta, id, lang)).join(', ');
+const GameCard = memo(function GameCard({ game, lang, meta, publisherQuery, query, t, steamApi }: GameCardProps) {
+  const ratingId = useMemo(() => ratingIdsFromGame(game)[0] || null, [game]);
+  const allDescriptorIds = useMemo(() => descriptorIdsFromGame(game), [game]);
+  const descriptorIds = useMemo(() => allDescriptorIds.slice(0, 4), [allDescriptorIds]);
+  const platformNames = useMemo(() => platformIdsFromGame(meta, game).map(id => platformName(meta, id, lang)).join(', '), [game, meta, lang]);
+  // Non-reactive peek: link appears on re-render once a match was resolved this
+  // session (e.g., after visiting the game detail). Never triggers a fetch.
+  const steamAppId = useMemo(() => {
+    const peeked = steamApi?.peekSteamMatch(game);
+    return peeked?.status === 'match' ? peeked.match.appId : null;
+  }, [game, steamApi]);
 
   return (
-    <button className={`${cardStyles.gameCard} ${pageStyles.fadeIn}`} data-visual-role="game-card" type="button" onClick={onOpen}>
+    <article className={`${cardStyles.gameCard} ${pageStyles.fadeIn}`} data-visual-role="game-card">
       <div className={cardStyles.gameCardTop}>
         <div className={cardStyles.gameCardInfo}>
-          <span className={cardStyles.gameTitle}>{highlight(game.name, query)}</span>
-          <div className={cardStyles.gamePublisher}>{highlight(game.publisherName, publisherQuery)}</div>
+          <div className={cardStyles.gameTitleRow}>
+            <Link to={`/game/${game.id}`} className={`${cardStyles.gameTitle} ${cardStyles.gameTitleLink}`}>
+              {highlight(game.name, query)}
+            </Link>
+            {/* Data incomplete indicator (#33): missing descriptors and/or platforms */}
+            {(!game.descriptors?.length || !game.platforms?.length) && (
+              <span className={cardStyles.dataIncompleteBadge} title={t('card.dataIncomplete')}>
+                {t('card.dataIncomplete')}
+              </span>
+            )}
+          </div>
+          <div className={cardStyles.gamePublisher}>
+            <Link
+              to={`/search/?publisher=${encodeURIComponent(game.publisherName)}`}
+              className={cardStyles.gamePublisherLink}
+            >
+              {highlight(game.publisherName, publisherQuery)}
+            </Link>
+          </div>
           <div className={cardStyles.gameCardMeta}>
             <div className={cardStyles.gameMetaGroup}>
               <span className={cardStyles.gameMetaLabel}>{t('detail.year')}</span>
@@ -52,15 +81,31 @@ const GameCard = memo(function GameCard({ game, lang, meta, onOpen, publisherQue
             </div>
             <div className={cardStyles.descriptorPreview}>
               <DescriptorIcons ids={descriptorIds} emptyLabel={t('card.noDescriptors')} lang={lang} meta={meta} />
+              {allDescriptorIds.length > 4 && (
+                <span className={cardStyles.descriptorOverflow}>+{allDescriptorIds.length - 4}</span>
+              )}
             </div>
           </div>
         </div>
         <div className={cardStyles.gameCardRight}>
           {ratingId ? <span className={cardStyles.ratingBadge} data-rating={ratingId}>{ratingName(meta, ratingId)}</span> : null}
-          <span className={cardStyles.viewDetail}>{t('card.viewDetail')}</span>
+          {steamAppId ? (
+            <Link
+              to={`/steamchecker/?appid=${encodeURIComponent(steamAppId)}`}
+              className={cardStyles.steamQuickLink}
+              aria-label={t('card.steamCheck')}
+              title={t('card.steamCheck')}
+            >
+              <ExternalLink size={14} aria-hidden="true" />
+              <span>Steam</span>
+            </Link>
+          ) : null}
+          <Link to={`/game/${game.id}`} className={cardStyles.viewDetail}>
+            {t('card.viewDetail')}
+          </Link>
         </div>
       </div>
-    </button>
+    </article>
   );
 });
 
@@ -71,13 +116,13 @@ interface SearchResultsProps {
   visibleResults: Array<{ game: IgrsGame }>;
   /** Total count of filtered results */
   totalCount: number;
+  onOpenDetail?: (id: number) => void;
   /** Whether virtual scrolling is active */
   useVirtualScroll: boolean;
   /** Incremented on filter/query change to trigger scroll reset */
   filterVersion: number;
   lang: 'en' | 'id';
   meta: IgrsMeta;
-  onOpenDetail: (id: number) => void;
   publisherQuery: string;
   query: string;
   onClearAll: () => void;
@@ -90,6 +135,36 @@ interface SearchResultsProps {
   onClearQuery?: () => void;
   /** Resolves a filter key+value to a human-readable label */
   filterLabel?: (filterKey: string, filterValue: string | number) => string;
+  /** Typo correction suggestion for empty results */
+  typoSuggestion?: string | null;
+  /** Callback when typo suggestion is clicked */
+  onTypoSuggestionClick?: (name: string) => void;
+  /** Optional Steam API facade for quick Steam-check links on cards (#29) */
+  steamApi?: SteamApi;
+}
+
+/**
+ * Arrow-key navigation between game cards (#21) — shared by the virtualized
+ * and paginated result lists. ArrowDown/ArrowUp move focus between card title
+ * links; Enter follows the focused link natively.
+ */
+function handleCardListKeyDown(e: React.KeyboardEvent<HTMLElement>): void {
+  if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+  const container = e.currentTarget;
+  // Focus targets are the title links (stretched-link pattern covers whole card)
+  const links = container.querySelectorAll<HTMLElement>('[data-visual-role="game-card"] a[class*="gameTitle"]');
+  const currentIndex = Array.from(links).findIndex(el => el === document.activeElement || el.contains(document.activeElement));
+
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    const next = currentIndex + 1;
+    if (next < links.length) links[next]?.focus();
+  } else {
+    e.preventDefault();
+    const prev = currentIndex - 1;
+    if (prev >= 0) links[prev]?.focus();
+  }
+  // Enter works natively on <a> elements — no handler needed
 }
 
 function VirtualizedResults({
@@ -98,11 +173,11 @@ function VirtualizedResults({
   filterVersion,
   lang,
   meta,
-  onOpenDetail,
   publisherQuery,
   query,
   t,
-}: Pick<SearchResultsProps, 'allResults' | 'totalCount' | 'filterVersion' | 'lang' | 'meta' | 'onOpenDetail' | 'publisherQuery' | 'query' | 't'>) {
+  steamApi,
+}: Pick<SearchResultsProps, 'allResults' | 'totalCount' | 'filterVersion' | 'lang' | 'meta' | 'publisherQuery' | 'query' | 't' | 'steamApi'>) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Virtual is intentionally used for large result virtualization.
@@ -129,6 +204,7 @@ function VirtualizedResults({
       <div
         ref={scrollContainerRef}
         className={cardStyles.virtualScrollContainer}
+        onKeyDown={handleCardListKeyDown}
       >
         <div
           style={{
@@ -158,10 +234,10 @@ function VirtualizedResults({
                   game={result.game}
                   lang={lang}
                   meta={meta}
-                  onOpen={() => onOpenDetail(result.game.id)}
                   publisherQuery={publisherQuery}
                   query={query}
                   t={t}
+                  steamApi={steamApi}
                 />
               </div>
             );
@@ -180,7 +256,6 @@ export function SearchResults({
   filterVersion,
   lang,
   meta,
-  onOpenDetail,
   publisherQuery,
   query,
   onClearAll,
@@ -189,15 +264,25 @@ export function SearchResults({
   onRemoveFilter,
   onClearQuery,
   filterLabel,
+  typoSuggestion,
+  onTypoSuggestionClick,
+  steamApi,
 }: SearchResultsProps) {
   if (totalCount === 0) {
     return (
-      <section id="game-list" className={cardStyles.gameList}>
+      <section id="game-list" className={cardStyles.gameList} aria-live="polite" aria-busy="false">
         <div className={`${pageStyles.emptyState} ${pageStyles.fadeIn}`}>
           <Gamepad2 className={pageStyles.emptyStateSvg} aria-hidden="true" />
           <div className={pageStyles.emptyStateTitle}>{t('empty.title')}</div>
           <div className={pageStyles.emptyStateDesc}>{t('empty.desc')}</div>
-          <button className={pageStyles.emptyClearBtn} type="button" onClick={onClearAll}>{t('search.clearAll')}</button>
+          {query && (
+            <div className={pageStyles.emptyStateContext}>
+              {t('empty.currentSearch')}: <strong>{query}</strong>
+            </div>
+          )}
+          <button className={pageStyles.emptyClearBtn} type="button" onClick={onClearAll}>
+            {t('search.clearAll')}
+          </button>
           {suggestion && onRemoveFilter && onClearQuery && filterLabel && (
             <SearchSuggestions
               suggestion={suggestion}
@@ -207,6 +292,14 @@ export function SearchResults({
               t={t}
               filterLabel={filterLabel}
             />
+          )}
+          {typoSuggestion && onTypoSuggestionClick && (
+            <div className={pageStyles.typoSuggestion}>
+              <span>{t('search.didYouMean')} </span>
+              <button type="button" className={pageStyles.typoLink} onClick={() => onTypoSuggestionClick(typoSuggestion)}>
+                {typoSuggestion}
+              </button>
+            </div>
           )}
         </div>
       </section>
@@ -221,27 +314,27 @@ export function SearchResults({
         filterVersion={filterVersion}
         lang={lang}
         meta={meta}
-        onOpenDetail={onOpenDetail}
         publisherQuery={publisherQuery}
         query={query}
         t={t}
+        steamApi={steamApi}
       />
     );
   }
 
   // Paginated mode (≤ 100 results)
   return (
-    <section id="game-list" className={cardStyles.gameList}>
+    <section id="game-list" className={cardStyles.gameList} onKeyDown={handleCardListKeyDown}>
       {visibleResults.map(result => (
         <GameCard
           game={result.game}
           key={result.game.id}
           lang={lang}
           meta={meta}
-          onOpen={() => onOpenDetail(result.game.id)}
           publisherQuery={publisherQuery}
           query={query}
           t={t}
+          steamApi={steamApi}
         />
       ))}
     </section>

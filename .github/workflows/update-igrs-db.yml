@@ -51,8 +51,7 @@ concurrency:
 jobs:
   update-db:
     runs-on: ubuntu-latest
-    # 6-hour timeout accommodates the sequential batch fetching of thousands of game IDs
-    timeout-minutes: 360
+    timeout-minutes: 120
     permissions:
       contents: write  # Required to push updated JSON files
       issues: write    # Required to create failure notification issues
@@ -62,7 +61,7 @@ jobs:
       # Step 1: Checkout the repository to access scripts and existing data
       # -----------------------------------------------------------------------
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       # -----------------------------------------------------------------------
       # Step 2: Install a pinned version of jq for reproducible JSON processing.

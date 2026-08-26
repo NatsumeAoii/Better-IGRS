@@ -1,23 +1,51 @@
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Search } from 'lucide-react';
 import { FAVICON_URL, RATING_ORDER } from '@/core/constants';
+import { fuzzyScoreNormalized } from '@/core/search-index';
+import { normalizeSearchText } from '@/core/search-text';
 import { useLanguage } from '@/app/providers/language-provider';
 import { useRequiredIgrsData } from '@/app/providers/data-provider';
 import { ErrorState, LoadingState } from '@/shared/components/data-state';
 import { IMG_RATING, IMG_RATING_WEBP, ratingIdsFromGame, ratingName, ratingTitle } from '@/shared/lib/ratings';
 import { formatLocalDateTime24 } from '@/shared/lib/format';
-import { useRecentlyViewed } from '@/shared/hooks/use-recently-viewed';
+import { useRecentlyViewed, clearRecentlyViewed } from '@/shared/hooks/use-recently-viewed';
+import { useDebouncedValue } from '@/shared/hooks/use-debounced-value';
+import { usePageTitle } from '@/shared/hooks/use-page-title';
 import type { IgrsGame, IgrsMeta } from '@/shared/types';
 import styles from './home-page.module.css';
 
 export function HomePage() {
   const { lang, t } = useLanguage();
-  const { data, error, loading } = useRequiredIgrsData();
+  const { data, error, loading, ensureData } = useRequiredIgrsData();
   const recentIds = useRecentlyViewed();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchFocused, setSearchFocused] = useState(false);
+  const [idInput, setIdInput] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const debouncedQuery = useDebouncedValue(searchQuery, 200);
+  const suggestions = useMemo(() => {
+    const q = normalizeSearchText(debouncedQuery);
+    if (q.length < 2) return [];
+    return data?.games
+      .map(g => ({ game: g, score: fuzzyScoreNormalized(debouncedQuery, g.name) }))
+      .filter(s => s.score > 40)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5) ?? [];
+  }, [debouncedQuery, data?.games]);
+
+  const handleIdSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    const id = parseInt(idInput, 10);
+    if (data?.gamesById.has(id)) navigate(`/game/${id}`);
+  };
+
+  usePageTitle(
+    t('home.title.prefix') + t('home.title.accent') + t('home.title.suffix') + t('home.title.bottom') + ' - IGRSDB',
+    t('home.subtitle')
+  );
 
   const handleSearchSubmit = useCallback((e: FormEvent) => {
     e.preventDefault();
@@ -50,7 +78,7 @@ export function HomePage() {
   if (error) {
     return (
       <main className={styles.hero} data-route-ready="home">
-        <ErrorState title={t('data.error.title')} description={t('data.error.desc')} />
+          <ErrorState title={t('data.error.title')} description={t('data.error.desc')} onRetry={() => void ensureData().catch(() => undefined)} retryLabel={t('retry')} />
       </main>
     );
   }
@@ -68,8 +96,7 @@ export function HomePage() {
   const updatedAt = formatLocalDateTime24(data.meta.meta?.generatedAt);
   const recentGames = recentIds
     .map(id => data.gamesById.get(id))
-    .filter((g): g is IgrsGame => g !== undefined)
-    .slice(0, 6);
+    .filter((g): g is IgrsGame => g !== undefined);
 
   return (
     <main className={styles.hero} data-route-ready="home">
@@ -93,9 +120,26 @@ export function HomePage() {
             placeholder={t('home.cta.search')}
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            aria-label={lang === 'id' ? 'Cari game berdasarkan judul' : 'Search games by title'}
+            onFocus={() => setSearchFocused(true)}
+            onBlur={() => setTimeout(() => setSearchFocused(false), 150)}
+            aria-label={t('home.searchPlaceholder')}
           />
           <kbd className={styles.quickSearchKbd}>/</kbd>
+          {suggestions.length > 0 && searchFocused && (
+            <ul className={styles.autocompleteList} role="listbox">
+              {suggestions.map(s => (
+                <li key={s.game.id} role="option" className={styles.autocompleteItem} onMouseDown={() => navigate(`/game/${s.game.id}`)}>
+                  <span className={styles.autocompleteName}>{s.game.name}</span>
+                  <span className={styles.autocompleteMeta}>{s.game.publisherName} · {s.game.releaseYear}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </form>
+
+        <form className={styles.idLookup} onSubmit={handleIdSubmit}>
+          <input type="text" inputMode="numeric" placeholder={t('home.idLookupPlaceholder')} value={idInput} onChange={e => setIdInput(e.target.value)} aria-label={t('home.idLookupLabel')} className={styles.idInput} />
+          <button type="submit" className={styles.idBtn}>{t('home.idLookupGo')}</button>
         </form>
 
         <div className={styles.heroStats} id="hero-stats">
@@ -117,6 +161,9 @@ export function HomePage() {
           </div>
         </div>
 
+        <RecentlyRatedSection games={data.games.slice(0, 6)} meta={data.meta} t={t} />
+        <RatingDistributionSection games={data.games} meta={data.meta} t={t} />
+
         <div className={styles.heroActions}>
           <Link to="/search/" className={styles.heroBtnPrimary}>{t('home.cta.search')}</Link>
           <Link to="/ratings/" className={styles.heroBtnSecondary}>{t('home.cta.ratings')}</Link>
@@ -124,27 +171,30 @@ export function HomePage() {
 
         <div className={styles.heroRatings} id="hero-ratings">
           {RATING_ORDER.filter(id => data.meta.ratings[String(id)]).map(id => (
-            <Link to="/ratings/" title={ratingTitle(data.meta, id, lang)} key={id}>
+            <Link to={`/search/?rating=${id}`} title={ratingTitle(data.meta, id, lang)} key={id}>
               <picture>
                 <source srcSet={IMG_RATING_WEBP(id)} type="image/webp" />
-                <img src={IMG_RATING(id)} alt={ratingName(data.meta, id)} width={56} height={56} loading="lazy" />
+                <img src={IMG_RATING(id)} alt={ratingName(data.meta, id)} width={56} height={56} />
               </picture>
             </Link>
           ))}
         </div>
 
         {recentGames.length > 0 ? (
-          <RecentlyViewedSection games={recentGames} meta={data.meta} lang={lang} />
+          <RecentlyViewedSection games={recentGames} meta={data.meta} t={t} />
         ) : null}
       </div>
     </main>
   );
 }
 
-function RecentlyViewedSection({ games, meta, lang }: { games: IgrsGame[]; meta: IgrsMeta; lang: 'en' | 'id' }) {
+function RecentlyViewedSection({ games, meta, t }: { games: IgrsGame[]; meta: IgrsMeta; t: (key: string) => string }) {
   return (
     <div className={styles.recentlyViewedSection}>
-      <div className={styles.recentlyViewedLabel}>{lang === 'id' ? 'Terakhir Dilihat' : 'Recently Viewed'}</div>
+      <div className={styles.recentlyViewedLabel}>
+        {t('home.recentlyViewed')}
+        <button type="button" className={styles.clearRecentBtn} onClick={clearRecentlyViewed}>{t('home.clearRecent')}</button>
+      </div>
       <div className={styles.recentlyViewedList}>
         {games.map(game => {
           const ratingId = ratingIdsFromGame(game)[0] || null;
@@ -157,6 +207,51 @@ function RecentlyViewedSection({ games, meta, lang }: { games: IgrsGame[]; meta:
           );
         })}
       </div>
+    </div>
+  );
+}
+
+function RecentlyRatedSection({ games, meta, t }: { games: IgrsGame[]; meta: IgrsMeta; t: (key: string) => string }) {
+  if (games.length === 0) return null;
+  return (
+    <div className={styles.recentlyRatedSection}>
+      <div className={styles.recentlyViewedLabel}>{t('home.recentlyRated')}</div>
+      <div className={styles.recentlyViewedList}>
+        {games.map(game => {
+          const ratingId = ratingIdsFromGame(game)[0] || null;
+          return (
+            <Link to={`/game/${game.id}`} className={styles.recentlyViewedItem} key={game.id}>
+              <span className={styles.recentlyViewedName}>{game.name}</span>
+              <span className={styles.recentlyViewedYear}>{game.releaseYear}</span>
+              {ratingId ? <span className={styles.ratingBadge} data-rating={ratingId}>{ratingName(meta, ratingId)}</span> : null}
+            </Link>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function RatingDistributionSection({ games, meta, t }: { games: IgrsGame[]; meta: IgrsMeta; t: (key: string) => string }) {
+  const counts = new Map<number, number>();
+  for (const game of games) {
+    for (const rid of ratingIdsFromGame(game)) {
+      counts.set(rid, (counts.get(rid) || 0) + 1);
+    }
+  }
+  const entries = RATING_ORDER.filter(id => counts.has(id)).map(id => ({ id, count: counts.get(id)! }));
+  const max = Math.max(...entries.map(e => e.count), 1);
+  if (entries.length === 0) return null;
+  return (
+    <div className={styles.ratingDistribution}>
+      <div className={styles.recentlyViewedLabel}>{t('ratings.distribution')}</div>
+      {entries.map(({ id, count }) => (
+        <div className={styles.ratingDistBar} key={id}>
+          <span className={styles.ratingBadge} data-rating={id}>{ratingName(meta, id)}</span>
+          <div className={styles.ratingDistFill} style={{ width: `${(count / max) * 100}%` }} />
+          <span className={styles.ratingDistCount}>{count}</span>
+        </div>
+      ))}
     </div>
   );
 }

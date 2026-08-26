@@ -88,7 +88,7 @@ export function Tooltip({ content, children, className }: TooltipProps) {
           pointerEvents: 'none',
           transition: 'opacity 0.15s',
           zIndex: 10,
-          visibility: visible ? 'visible' : 'hidden',
+          display: visible ? 'block' : 'none',
         }}
       >
         {content}

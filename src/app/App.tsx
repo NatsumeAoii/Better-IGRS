@@ -1,7 +1,7 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, type ReactNode } from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { DataProvider } from '@/app/providers/data-provider';
-import { LanguageProvider } from '@/app/providers/language-provider';
+import { LanguageProvider, useLanguage } from '@/app/providers/language-provider';
 import { ThemeProvider } from '@/app/providers/theme-provider';
 import { APP_BASE_PATH } from '@/core/constants';
 import { NotFoundPage } from '@/features/fallback/not-found-page';
@@ -10,6 +10,11 @@ import { SearchPage } from '@/features/search/search-page';
 import { AppShell } from '@/shared/components/app-shell';
 import { LoadingState } from '@/shared/components/data-state';
 import { RouteErrorBoundary } from '@/shared/components/route-error-boundary';
+
+function LocalizedRouteErrorBoundary({ children }: { children: ReactNode }) {
+  const { t } = useLanguage();
+  return <RouteErrorBoundary t={t}>{children}</RouteErrorBoundary>;
+}
 
 const RatingsPage = lazy(() =>
   import('@/features/ratings/ratings-page').then((m) => ({ default: m.RatingsPage }))
@@ -36,31 +41,31 @@ export function App() {
                 <Route
                   path="/game/:id"
                   element={
-                    <RouteErrorBoundary>
-                      <Suspense fallback={<LoadingState label="Loading page…" />}>
+                    <LocalizedRouteErrorBoundary>
+                      <Suspense fallback={<LoadingState label="Loading…" />}>
                         <GamePage />
                       </Suspense>
-                    </RouteErrorBoundary>
+                    </LocalizedRouteErrorBoundary>
                   }
                 />
                 <Route
                   path="/ratings/"
                   element={
-                    <RouteErrorBoundary>
-                      <Suspense fallback={<LoadingState label="Loading page…" />}>
+                    <LocalizedRouteErrorBoundary>
+                      <Suspense fallback={<LoadingState label="Loading…" />}>
                         <RatingsPage />
                       </Suspense>
-                    </RouteErrorBoundary>
+                    </LocalizedRouteErrorBoundary>
                   }
                 />
                 <Route
                   path="/steamchecker/"
                   element={
-                    <RouteErrorBoundary>
-                      <Suspense fallback={<LoadingState label="Loading page…" />}>
+                    <LocalizedRouteErrorBoundary>
+                      <Suspense fallback={<LoadingState label="Loading…" />}>
                         <SteamCheckerPage />
                       </Suspense>
-                    </RouteErrorBoundary>
+                    </LocalizedRouteErrorBoundary>
                   }
                 />
                 <Route path="*" element={<NotFoundPage />} />

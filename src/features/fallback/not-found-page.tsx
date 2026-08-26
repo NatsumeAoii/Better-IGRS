@@ -1,10 +1,13 @@
 import { AlertTriangle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useLanguage } from '@/app/providers/language-provider';
+import { usePageTitle } from '@/shared/hooks/use-page-title';
 import styles from './not-found-page.module.css';
 
 export function NotFoundPage() {
   const { t } = useLanguage();
+
+  usePageTitle(`${t('fallback.notFound.title')} - IGRSDB`, t('fallback.notFound.desc'));
 
   return (
     <main className={`${styles.pageContainer} ${styles.fallbackPage}`} id="fallback-page" data-route-ready="fallback">

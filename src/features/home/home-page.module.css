@@ -16,10 +16,12 @@
 
 .heroContent {
   max-width: var(--layout-readable);
+  width: 100%;
+  min-width: 0;
 }
 
 .heroLogo {
-  width: 260px;
+  width: clamp(140px, 30vw, 260px);
   max-width: 100%;
   height: auto;
   margin: 0 auto;
@@ -29,7 +31,7 @@
 
 /* ─── Title ─── */
 .heroTitle {
-  font-size: 2.5rem;
+  font-size: clamp(1.5rem, 5vw, 2.5rem);
   font-weight: 800;
   line-height: 1.15;
   letter-spacing: 0;
@@ -42,7 +44,7 @@
 }
 
 .heroSubtitle {
-  font-size: 1.05rem;
+  font-size: clamp(0.9rem, 2.5vw, 1.05rem);
   color: var(--text-secondary);
   line-height: 1.6;
   font-weight: 400;
@@ -63,7 +65,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-width: 112px;
+  min-width: clamp(90px, 22vw, 112px);
   padding: 0.65rem 1rem;
   background: rgba(255, 255, 255, 0.82);
   border: 1px solid var(--border);
@@ -77,13 +79,13 @@
 }
 
 .heroStatNum {
-  font-size: 1.8rem;
+  font-size: clamp(1.4rem, 4vw, 1.8rem);
   font-weight: 800;
   color: var(--primary);
 }
 
 .heroStatNumUpdated {
-  font-size: 1.8rem;
+  font-size: clamp(1rem, 3vw, 1.8rem);
   font-weight: 800;
   line-height: 1.15;
   text-align: center;
@@ -112,10 +114,12 @@
 
 /* ─── Quick Search ─── */
 .quickSearch {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 0.5rem;
   max-width: 480px;
+  width: 100%;
   margin: 0 auto 1.5rem;
   padding: 0.6rem 1rem;
   background: var(--bg-card);
@@ -271,7 +275,19 @@
   margin-inline: auto;
 }
 
+.recentlyRatedSection {
+  margin-top: var(--space-8);
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--border);
+  width: 100%;
+  max-width: 600px;
+  margin-inline: auto;
+}
+
 .recentlyViewedLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   font-size: 0.72rem;
   font-weight: 800;
   color: var(--text-muted);
@@ -376,32 +392,193 @@
 }
 
 .ratingBadge[data-rating="35"] {
-  background: var(--color-text-primary);
+  background: #111827;
+}
+
+:global([data-theme="dark"]) .ratingBadge[data-rating="35"] {
+  background: #334155;
+}
+
+/* ─── Clear Recent Button ─── */
+.clearRecentBtn {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.15rem 0.4rem;
+  border-radius: var(--radius-sm);
+  transition: color 0.15s, background 0.15s;
+}
+
+.clearRecentBtn:hover {
+  color: var(--primary);
+  background: rgba(59, 130, 246, 0.08);
+}
+
+/* ─── Rating Distribution ─── */
+.ratingDistribution {
+  margin-top: var(--space-8);
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--border);
+  width: 100%;
+  max-width: 600px;
+  margin-inline: auto;
+}
+
+/* ─── Autocomplete ─── */
+.autocompleteList {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin: 4px 0 0;
+  padding: 0.3rem 0;
+  list-style: none;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  z-index: 10;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.autocompleteItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.85rem;
+  cursor: pointer;
+  font-size: 0.82rem;
+  transition: background 0.1s;
+  min-height: 44px;
+}
+
+.autocompleteItem:hover,
+.autocompleteItem:focus-visible {
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.autocompleteName {
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.autocompleteMeta {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+/* ─── ID Lookup ─── */
+.idLookup {
+  display: flex;
+  justify-content: center;
+  gap: 0.4rem;
+  margin-bottom: 1.5rem;
+}
+
+.idInput {
+  width: 140px;
+  min-height: 44px;
+  padding: 0.4rem 0.7rem;
+  font-size: 0.82rem;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--bg-card);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.idInput:focus {
+  border-color: var(--primary);
+}
+
+.idInput::placeholder {
+  color: var(--text-muted);
+}
+
+.idBtn {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  font-family: inherit;
+  color: var(--color-surface);
+  background: var(--primary);
+  border: 1.5px solid var(--primary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.idBtn:hover {
+  background: var(--primary-hover);
+  border-color: var(--primary-hover);
+}
+
+.ratingDistBar {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.45rem;
+}
+
+.ratingDistFill {
+  height: 10px;
+  border-radius: 5px;
+  background: var(--primary);
+  min-width: 4px;
+  transition: width 0.3s;
+}
+
+.ratingDistCount {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  min-width: 24px;
+  text-align: right;
 }
 
 /* ─── Responsive ─── */
 @media (max-width: 900px) {
-  .heroTitle {
-    font-size: 2rem;
-  }
-
   .heroStats {
-    gap: var(--space-8);
+    gap: 0.75rem;
   }
 }
 
 @media (max-width: 600px) {
-  .heroTitle {
-    font-size: 1.6rem;
-  }
-
-  .heroLogo {
-    width: 180px;
-    margin-bottom: -1rem;
-  }
-
   .heroStats {
     flex-direction: column;
     gap: 1rem;
+  }
+
+  .heroStatWide {
+    flex-basis: auto;
+    width: auto;
+  }
+
+  .idLookup {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .idInput {
+    width: 100%;
+    max-width: 280px;
   }
 }

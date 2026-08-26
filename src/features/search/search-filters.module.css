@@ -6,8 +6,9 @@
   background: var(--bg-sidebar);
   border: 1.5px solid var(--border);
   border-radius: var(--radius);
-  overflow: hidden;
   box-shadow: var(--shadow);
+  /* NOTE: no `overflow: hidden` here — it would break
+     position: sticky on the panel header inside .sidebar scroll container */
 }
 
 .filterPanelHeader {
@@ -21,6 +22,7 @@
   background: var(--bg-sidebar);
   border: 0;
   border-bottom: 1px solid var(--border);
+  border-radius: var(--radius) var(--radius) 0 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -28,6 +30,10 @@
   cursor: pointer;
   user-select: none;
   text-align: left;
+  /* Keep section titles visible while the sidebar scrolls */
+  position: sticky;
+  top: 0;
+  z-index: 2;
 }
 
 /* ─── Active Count Badge (mobile accordion) ─────────────────── */
@@ -63,23 +69,21 @@
   display: none;
 }
 
+/* When collapsed, header is the visible panel — round its bottom too */
+.filterPanel:has(.filterPanelBodyCollapsed) .filterPanelHeader {
+  border-radius: var(--radius);
+  border-bottom: 0;
+}
+
 .filterPanelBody {
   padding: 0.6rem 1rem;
-  max-height: 260px;
-  overflow-y: auto;
+  /* Natural height: all options stay visible; the .sidebar container
+     is the single scroll context. No nested overflow here. */
+  border-radius: 0 0 var(--radius) var(--radius);
 }
 
 .filterPanelBodyShort {
-  max-height: 126px;
-}
-
-.filterPanelBody::-webkit-scrollbar {
-  width: 4px;
-}
-
-.filterPanelBody::-webkit-scrollbar-thumb {
-  background: var(--text-light);
-  border-radius: 4px;
+  padding-block: 0.4rem;
 }
 
 /* ─── Filter Checkbox ───────────────────────────────────────── */
@@ -88,20 +92,37 @@
   align-items: center;
   gap: 0.5rem;
   min-height: 44px;
-  padding: 0.3rem 0;
+  padding: 0.4rem 0.5rem;
+  margin-inline: -0.5rem;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   font-size: 0.8rem;
   color: var(--text-secondary);
-  transition: color 0.15s;
+  transition: color 0.15s, background 0.15s;
+  user-select: none;
 }
 
 .filterCheckbox:hover {
   color: var(--text);
+  background: var(--bg-page);
+}
+
+.filterCheckbox:focus-within {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+}
+
+.filterCheckboxZero {
+ opacity: 0.45;
+}
+
+.filterCheckboxZero:hover {
+ background: transparent;
 }
 
 .filterCheckbox input[type="checkbox"] {
-  width: 15px;
-  height: 15px;
+  width: 16px;
+  height: 16px;
   accent-color: var(--primary);
   cursor: pointer;
   flex-shrink: 0;
@@ -114,6 +135,40 @@
   font-weight: 600;
 }
 
+/* ─── Year Range Select ─────────────────────────────────────── */
+.yearRangeRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0;
+}
+
+.yearRangeRow select {
+  flex: 1;
+  min-width: 0;
+  min-height: 36px;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8rem;
+  font-family: inherit;
+  color: var(--text-secondary);
+  background: var(--bg-page);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  accent-color: var(--primary);
+}
+
+.yearRangeRow select:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+
+.yearRangeRow span {
+  color: var(--text-light);
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+
 /* ─── Clear All Button ──────────────────────────────────────── */
 .clearBtn {
   display: block;
@@ -123,8 +178,8 @@
   font-size: 0.75rem;
   font-weight: 600;
   font-family: inherit;
-  border: none;
-  border-top: 1px solid var(--border);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
   background: var(--bg-page);
   color: var(--primary);
   cursor: pointer;
@@ -138,3 +193,129 @@
 .clearBtnHidden {
   display: none;
 }
+
+/* ─── Top Publishers Directory ──────────────────────────────── */
+.filterPublisherLink {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: calc(100% + 1rem);
+  min-height: 40px;
+  padding: 0.5rem 0.75rem;
+  margin-inline: -0.5rem;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.8rem;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.filterPublisherLink:last-child {
+  border-bottom: none;
+}
+
+.filterPublisherLink:hover,
+.filterPublisherLink:focus-visible {
+  background: var(--bg-page);
+}
+
+.filterPublisherLink:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+}
+
+.filterPublisherLinkActive {
+  background: var(--primary-light);
+  border-inline-start: 3px solid var(--primary);
+  font-weight: 600;
+}
+
+.filterPublisherName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+
+.filterPublisherCount {
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg);
+  border-radius: 10px;
+  padding: 0.1rem 0.45rem;
+  margin-inline-start: 0.5rem;
+}
+
+/* Full publisher directory (#6.3) */
+.publisherDirectoryToggle {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  width: calc(100% + 1rem);
+  min-height: 40px;
+  margin-top: 0.25rem;
+  margin-inline: -0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: none;
+  border: none;
+  border-top: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  font-family: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.publisherDirectoryToggle:hover,
+.publisherDirectoryToggle:focus-visible {
+  color: var(--text);
+  background: var(--bg-page);
+}
+
+.publisherDirectoryToggle:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+}
+
+.publisherDirectoryToggle .chevron {
+  flex-shrink: 0;
+}
+
+.publisherSearchInput {
+  width: 100%;
+  min-height: 36px;
+  margin-block: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 0.8rem;
+  font-family: inherit;
+}
+
+.publisherSearchInput:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -1px;
+}
+
+.publisherDirectoryScroll {
+  max-height: 240px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.publisherDirectoryEmpty {
+  margin: 0.5rem 0;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+

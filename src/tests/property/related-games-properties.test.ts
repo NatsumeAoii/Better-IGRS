@@ -27,7 +27,9 @@ function gameArb(idRange: { min: number; max: number } = { min: 1, max: 1000 }):
 }
 
 /**
- * Compute the descriptor overlap count between a candidate game and the current game.
+ * Compute the score between a candidate game and the current game,
+ * matching the scoring logic in findRelatedGames (descriptor overlap
+ * + publisher bonus + year proximity bonus).
  */
 function descriptorOverlap(game: IgrsGame, currentGame: IgrsGame): number {
   const currentSet = new Set(currentGame.descriptors!);
@@ -35,6 +37,9 @@ function descriptorOverlap(game: IgrsGame, currentGame: IgrsGame): number {
   for (const d of game.descriptors!) {
     if (currentSet.has(d)) count++;
   }
+  if (game.publisherName === currentGame.publisherName) count += 2;
+  const yearDiff = Math.abs((game.releaseYear || 0) - (currentGame.releaseYear || 0));
+  if (yearDiff <= 2) count += (3 - yearDiff);
   return count;
 }
 

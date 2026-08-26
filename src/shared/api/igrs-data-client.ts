@@ -9,7 +9,7 @@ import { createDataCache, type DataCache } from '@/shared/api/data-cache';
 import { loadIgrsData } from '@/shared/api/data-service';
 import type { IgrsData } from '@/shared/types';
 
-type Listener = (data: IgrsData) => void;
+type Listener = (data: IgrsData, options: { unlocked: boolean }) => void;
 
 export interface IgrsDataClient {
   /** Returns cached if fresh, serves stale while revalidating in background, fetches fresh if empty. */
@@ -32,17 +32,23 @@ export function createIgrsDataClient(): IgrsDataClient {
     unlocked: createDataCache<IgrsData>(),
   };
 
-  let revalidating = false;
-  let pendingRequest: { promise: Promise<IgrsData>; unlocked: boolean } | null = null;
+  const revalidatingByState: Record<'locked' | 'unlocked', boolean> = {
+    locked: false,
+    unlocked: false,
+  };
+  const pendingRequestByState: Record<'locked' | 'unlocked', Promise<IgrsData> | null> = {
+    locked: null,
+    unlocked: null,
+  };
   const listeners = new Set<Listener>();
 
   function getCacheForState(unlocked: boolean): DataCache<IgrsData> {
     return unlocked ? cacheByUnlocked.unlocked : cacheByUnlocked.locked;
   }
 
-  function notify(data: IgrsData): void {
+  function notify(data: IgrsData, unlocked: boolean): void {
     for (const listener of listeners) {
-      listener(data);
+      listener(data, { unlocked });
     }
   }
 
@@ -64,41 +70,43 @@ export function createIgrsDataClient(): IgrsDataClient {
 
     // Stale cache → serve stale immediately, revalidate in background
     if (cached && cache.isStale()) {
-      if (!revalidating) {
-        revalidating = true;
+      const cacheState = unlocked ? 'unlocked' : 'locked';
+      if (!revalidatingByState[cacheState]) {
+        revalidatingByState[cacheState] = true;
         loadIgrsData({ unlocked })
           .then(nextData => {
             cache.set(nextData);
-            notify(nextData);
+            notify(nextData, unlocked);
           })
           .catch(() => {
-            // Background revalidation failure: silently retain cached data
+            // Graceful degradation: if revalidation fails, serve stale cache. This is intentional.
           })
           .finally(() => {
-            revalidating = false;
+            revalidatingByState[cacheState] = false;
           });
       }
       return cached.data;
     }
 
     // No cache → fetch fresh. Deduplicate in-flight requests for same unlocked state.
-    if (pendingRequest && pendingRequest.unlocked === unlocked) {
-      return pendingRequest.promise;
+    const cacheState = unlocked ? 'unlocked' : 'locked';
+    if (pendingRequestByState[cacheState]) {
+      return pendingRequestByState[cacheState];
     }
 
     const request = loadIgrsData({ unlocked })
       .then(nextData => {
         cache.set(nextData);
-        notify(nextData);
+        notify(nextData, unlocked);
         return nextData;
       })
       .finally(() => {
-        if (pendingRequest?.promise === request) {
-          pendingRequest = null;
+        if (pendingRequestByState[cacheState] === request) {
+          pendingRequestByState[cacheState] = null;
         }
       });
 
-    pendingRequest = { promise: request, unlocked };
+    pendingRequestByState[cacheState] = request;
     return request;
   }
 

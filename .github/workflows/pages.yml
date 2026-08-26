@@ -40,12 +40,6 @@ jobs:
       - name: Run deterministic checks
         run: npm run check
 
-      - name: Preserve custom domain marker
-        shell: bash
-        run: |
-          set -euo pipefail
-          cp CNAME dist/CNAME
-
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v5
         with:

@@ -1,23 +1,22 @@
 {
-  "name": "igrsdb",
-  "version": "0.0.2",
+  "name": "better-igrs",
+  "version": "0.0.5",
   "private": true,
-  "description": "Vite React frontend for the unofficial IGRS database.",
+  "description": "Vite React frontend for Better-IGRS.",
   "license": "UNLICENSED",
   "homepage": "https://igrs.madeby.my.id/",
   "main": "src/main.tsx",
   "scripts": {
     "preinstall": "node -e \"if(!/npm/.test(process.env.npm_execpath||'')){console.error('\\x1b[31mError: This project requires npm as the package manager.\\nPlease use: npm install\\x1b[0m');process.exit(1)}\"",
     "dev": "vite --config config/vite.config.ts --host 127.0.0.1",
-    "build": "tsc -b config/tsconfig.json && vite --config config/vite.config.ts build",
-    "build:pages-root": "npm run build && node ops/scripts/sync-pages-root.js",
+    "build": "tsc -b config/tsconfig.json && vite --config config/vite.config.ts build && node scripts/generate-sitemap.mjs && node scripts/generate-rss.mjs",
     "preview": "vite --config config/vite.config.ts preview --host 127.0.0.1",
     "typecheck": "tsc -b config/tsconfig.json",
     "lint": "eslint -c config/eslint.config.js .",
     "serve:static": "node ops/scripts/dev-server.js --root dist",
     "visual:check": "node ops/scripts/visual-compat.js",
     "worker:check": "npm --prefix ops/worker ci --ignore-scripts && npm run --prefix ops/worker typecheck",
-    "check": "node --check ops/scripts/dev-server.js && node --check ops/scripts/visual-compat.js && npm run worker:check && node src/tests/structure/stack.test.js && node src/tests/structure/github-automation.test.js && npm run lint && npm run test && npm run build",
+    "check": "node --check ops/scripts/dev-server.js && node --check ops/scripts/visual-compat.js && npm run worker:check && node src/tests/structure/stack.test.js && node src/tests/structure/github-automation.test.js && npm run lint && npm run test && npm run build && node scripts/check-dist-structure.js",
     "test": "vitest --config config/vite.config.ts run"
   },
   "engines": {
@@ -35,7 +34,6 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/dompurify": "^3.0.5",
@@ -52,7 +50,7 @@
     "jsdom": "^29.1.1",
     "lightningcss": "^1.32.0",
     "rollup-plugin-visualizer": "^5.14.0",
-    "sharp": "^0.34.5",
+    "sharp": "^0.35.3",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.59.4",
     "vite": "^8.0.14",
