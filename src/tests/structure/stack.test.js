@@ -129,7 +129,7 @@ function testViteTypescriptConfigurationExists() {
 
   const viteConfig = read('config/vite.config.ts');
   assert(viteConfig.includes('@vitejs/plugin-react'), 'vite.config.ts: expected React plugin');
-  assert(viteConfig.includes("base: './'"), 'vite.config.ts: built asset URLs should be relative for GitHub project Pages');
+  assert(viteConfig.includes("process.env.VITE_BASE_PATH || './'"), 'vite.config.ts: expected a relative default with a deploy-time base path override');
   assert(viteConfig.includes("transformer: 'lightningcss'"), 'vite.config.ts: expected Lightning CSS transformer');
   assert(viteConfig.includes("cssMinify: 'lightningcss'"), 'vite.config.ts: expected Lightning CSS minifier');
   assert(viteConfig.includes("../public"), 'vite.config.ts: expected grouped public asset directory');

@@ -4,6 +4,7 @@ import { fileURLToPath, URL } from 'node:url';
 import { defineConfig, type Plugin } from 'vitest/config';
 
 const analyze = process.env.ANALYZE === 'true';
+const configuredBasePath = process.env.VITE_BASE_PATH || './';
 
 // Extract version from CHANGELOG.md at build time (just the version string).
 // The full changelog content is imported via ?raw only in the lazy-loaded modal.
@@ -94,7 +95,7 @@ export default defineConfig(async () => {
     : [];
 
   return {
-    base: './',
+    base: configuredBasePath,
     define: {
       APP_VERSION: JSON.stringify(detectedVersion),
     },
@@ -154,7 +155,10 @@ export default defineConfig(async () => {
         { hostId, hostType }: { hostId: string; hostType: 'js' | 'css' | 'html' }
       ): string | undefined {
         if (hostType === 'html' && /(^|[\\/])404\.html$/.test(hostId)) {
-          return `/${filename}`;
+          const assetPrefix = configuredBasePath === './'
+            ? ''
+            : configuredBasePath.replace(/\/$/, '');
+          return `${assetPrefix}/${filename}`;
         }
         return undefined;
       }

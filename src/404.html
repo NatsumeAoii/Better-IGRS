@@ -21,12 +21,11 @@
     <link rel="stylesheet" href="https://fonts.bunny.net/css?family=raleway:300,400,500,600,700,800&display=swap">
     <link rel="icon" type="image/svg+xml" href="%BASE_URL%assets/icons/favicon.svg">
     <meta name="theme-color" content="#ffffff">
-    <!-- Root-absolute paths for boot-critical resources: this file is the SPA
-         fallback served at arbitrary unknown paths (e.g. /game/123), where
-         relative URLs would resolve against the request path and break. -->
-    <script src="/assets/theme-init.js"></script>
-    <link rel="preload" href="/assets/data/json/igrs.games.json" as="fetch" crossorigin>
-    <link rel="manifest" href="/manifest.webmanifest">
+    <!-- BASE_URL keeps fallback resources under both custom domains and
+         repository project pages, including direct /game/:id requests. -->
+    <script src="%BASE_URL%assets/theme-init.js"></script>
+    <link rel="preload" href="%BASE_URL%assets/data/json/igrs.games.json" as="fetch" crossorigin>
+    <link rel="manifest" href="%BASE_URL%manifest.webmanifest">
   </head>
   <body>
     <div id="root"></div>

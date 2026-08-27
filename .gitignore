@@ -1,1 +1,46 @@
-node_modules/dist/build/coverage/src/coverage/src/node_modules/artifacts/.worktree/.env.env.*.env.local!.env.example.DS_StoreThumbs.db*.log*.tmp*.bak*.backupnpm-debug.log*yarn-debug.log*yarn-error.log*pnpm-debug.log*.kiro.kilo/node_modules/.kilo/agent-manager.json.kilo/plans/.playwright-mcp/.wrangler/.dev.vars.vscode/.idea/.kilo.plans# Root-level Pages build outputs — artifact deploy serves dist/ only.# Defense against re-running the removed sync-pages-root flow at repo root./index.html/404.html/sitemap.xml/rss.xml/assets//ratings//search//steamchecker/
+node_modules/
+dist/
+build/
+coverage/
+src/coverage/
+src/node_modules/
+artifacts/
+.worktree/
+.env
+.env.*
+.env.local
+!.env.example
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+*.bak
+*.backup
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.kiro
+.kilo/node_modules/
+.kilo/agent-manager.json
+.kilo/plans/
+.playwright-mcp/
+.wrangler/
+.dev.vars
+.vscode/
+.idea/
+.kilo
+.plans
+
+# Root-level Pages build outputs — artifact deploy serves dist/ only.
+# Defense against re-running the removed sync-pages-root flow at repo root.
+/index.html
+/404.html
+/sitemap.xml
+/rss.xml
+/.nojekyll
+/CNAME
+/assets/
+/ratings/
+/search/
+/steamchecker/
