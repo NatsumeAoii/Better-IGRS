@@ -226,6 +226,12 @@ export function createSteamApi(options: SteamApiOptions = {}) {
       && (error.message.includes('Failed to fetch') || error.message.includes('NetworkError'));
   }
 
+  function shouldTryNextProxy(response: Response, proxy: SteamProxy): boolean {
+    // GitHub Pages is static, so its missing same-origin Worker route returns
+    // a 404. Treat that as an unreachable transport and use the CORS fallback.
+    return proxy.mode === 'path' && response.status === 404;
+  }
+
   async function fetchJsonWithTimeout<T>(url: string, timeoutMs = 10000, fetchOptions: SteamFetchOptions = {}): Promise<T> {
     const retries = Number.isFinite(fetchOptions.retries) ? Math.max(0, fetchOptions.retries ?? 0) : 2;
     let lastError: unknown = null;
@@ -243,7 +249,13 @@ export function createSteamApi(options: SteamApiOptions = {}) {
         const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
         try {
           const response = await fetch(proxiedUrl(url, proxy), { signal: controller.signal });
-          if (!response.ok) throw new Error(translate('steamchecker.error.load'));
+          if (!response.ok) {
+            if (shouldTryNextProxy(response, proxy)) {
+              proxyUnreachable = true;
+              break;
+            }
+            throw new Error(translate('steamchecker.error.load'));
+          }
 
           const contentType = response.headers.get('content-type') ?? '';
           if (!contentType.includes('application/json')) {

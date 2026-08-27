@@ -59,6 +59,34 @@ describe('createSteamApi', () => {
     );
   });
 
+  it('falls back when a static host returns 404 for the Worker proxy route', async () => {
+    const workerProxyBase = 'https://pages.test/proxy/steam/';
+    const fetchSpy = vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response('Not Found', { status: 404 }))
+      .mockResolvedValueOnce(jsonResponse({ value: 1 }));
+    const api = createSteamApi({
+      proxies: [
+        { base: workerProxyBase, mode: 'path' },
+        { base: TEST_PROXY_BASE, mode: 'url' },
+      ],
+    });
+
+    await expect(
+      api.fetchJsonWithTimeout<unknown>('https://store.steampowered.com/api/x', 1000, { retries: 0 })
+    ).resolves.toEqual({ value: 1 });
+
+    expect(fetchSpy).toHaveBeenNthCalledWith(
+      1,
+      'https://pages.test/proxy/steam/api/x',
+      expect.objectContaining({ signal: expect.any(AbortSignal) })
+    );
+    expect(fetchSpy).toHaveBeenNthCalledWith(
+      2,
+      'https://cors.mefi.workers.dev/https://store.steampowered.com/api/x',
+      expect.objectContaining({ signal: expect.any(AbortSignal) })
+    );
+  });
+
   it('starts a fresh details request when the previous same-app caller was aborted before cleanup settles', async () => {
     const firstFetch = deferred<Response>();
     const fetchSpy = vi.spyOn(globalThis, 'fetch')
