@@ -3,7 +3,7 @@ name: Deploy GitHub Pages
 on:
   push:
     branches:
-      - main
+      - gh-pages
   workflow_dispatch:
 
 permissions: {}
@@ -13,11 +13,13 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 15
     permissions:
       contents: read
+      pages: write
+      id-token: write
 
     steps:
       - name: Checkout repository
@@ -47,25 +49,10 @@ jobs:
         run: node scripts/check-dist-structure.js
 
       - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v5
+        uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
-          retention-days: 1
+          path: ./dist
+          retention-days: 7
 
-  deploy:
-    needs: build
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-
-    permissions:
-      pages: write
-      id-token: write
-
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-
-    steps:
       - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v5
+        uses: actions/deploy-pages@v4
