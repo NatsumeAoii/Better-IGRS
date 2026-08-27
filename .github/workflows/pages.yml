@@ -3,7 +3,7 @@ name: Deploy GitHub Pages
 on:
   push:
     branches:
-      - gh-pages
+      - main
   workflow_dispatch:
 
 permissions: {}
@@ -35,10 +35,16 @@ jobs:
             ops/worker/package-lock.json
 
       - name: Install npm dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Run deterministic checks
         run: npm run check
+
+      - name: Build project
+        run: npm run build
+
+      - name: Verify build output
+        run: node scripts/check-dist-structure.js
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v5
