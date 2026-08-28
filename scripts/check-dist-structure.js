@@ -37,6 +37,7 @@ for (const relativePath of [
   'ratings/index.html',
   'search/index.html',
   'steamchecker/index.html',
+  'favorites/index.html',
   'assets/data/json/igrs.meta.json',
   'assets/data/json/igrs.games.json',
 ]) {

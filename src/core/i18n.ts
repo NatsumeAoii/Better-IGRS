@@ -241,6 +241,7 @@ const en = {
     'steamchecker.platforms': 'Platforms',
     'search.copied': 'Copied!',
     'search.copyLink': 'Copy Link',
+    'search.copyFailed': 'Copy failed — your browser blocked clipboard access.',
     'detail.prevGame': 'Previous Game',
     'detail.nextGame': 'Next Game',
     // Accessibility & polish extras
@@ -263,6 +264,22 @@ const en = {
     'app.dismiss': 'Dismiss',
     // Offline affordance
     'app.offlineBanner': "You're offline — showing saved data",
+    // Favorites (plan 4.1)
+    'nav.favorites': 'Favorites',
+    'favorites.title': 'Favorites',
+    'favorites.count': 'Your Favorites ({count})',
+    'favorites.empty.title': 'No favorites yet',
+    'favorites.empty.desc': 'Add games to your favorites list using the star button on any game card.',
+    'favorites.empty.action': 'Browse games',
+    'favorites.add': 'Add to favorites',
+    'favorites.remove': 'Remove from favorites',
+    // Share/copy failure feedback (plan 1.2)
+    'detail.copyFailed': 'Copy failed — your browser blocked clipboard access.',
+    // Search history (plan 1.4)
+    'search.history.title': 'Recent searches',
+    'search.history.clear': 'Clear history',
+    'search.history.remove': 'Remove "{query}" from history',
+    'search.history.empty': 'No recent searches yet',
 } as const;
 
 const id: TranslationDictionary<typeof en> = {
@@ -505,6 +522,7 @@ const id: TranslationDictionary<typeof en> = {
     'steamchecker.platforms': 'Platform',
     'search.copied': 'Tersalin!',
     'search.copyLink': 'Salin Link',
+    'search.copyFailed': 'Gagal menyalin — peramban Anda memblokir akses clipboard.',
     'detail.prevGame': 'Game Sebelumnya',
     'detail.nextGame': 'Game Berikutnya',
     // Accessibility & polish extras
@@ -527,6 +545,22 @@ const id: TranslationDictionary<typeof en> = {
     'app.dismiss': 'Tutup',
     // Offline affordance
     'app.offlineBanner': 'Anda sedang offline — menampilkan data tersimpan',
+    // Favorites (plan 4.1)
+    'nav.favorites': 'Favorit',
+    'favorites.title': 'Favorit',
+    'favorites.count': 'Favorit Anda ({count})',
+    'favorites.empty.title': 'Belum ada favorit',
+    'favorites.empty.desc': 'Tambahkan game ke daftar favorit menggunakan tombol bintang di kartu game mana pun.',
+    'favorites.empty.action': 'Jelajahi game',
+    'favorites.add': 'Tambahkan ke favorit',
+    'favorites.remove': 'Hapus dari favorit',
+    // Share/copy failure feedback (plan 1.2)
+    'detail.copyFailed': 'Gagal menyalin — peramban Anda memblokir akses clipboard.',
+    // Search history (plan 1.4)
+    'search.history.title': 'Pencarian terakhir',
+    'search.history.clear': 'Hapus riwayat',
+    'search.history.remove': 'Hapus "{query}" dari riwayat',
+    'search.history.empty': 'Belum ada pencarian terakhir',
 };
 
 export type I18nKey = keyof typeof en;

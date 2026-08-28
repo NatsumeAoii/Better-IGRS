@@ -603,6 +603,7 @@
 
 .emptyRetryBtn {
   margin-top: 1rem;
+  min-width: 44px;
 }
 
 .loadingSpinner {

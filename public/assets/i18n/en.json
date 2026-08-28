@@ -226,5 +226,18 @@
   "card.steamCheck": "Check on Steam",
   "app.devUnlocked": "Developer mode unlocked â€” extra link fields, the raw data inspector, and the advanced Steam checker card are now visible.",
   "app.dismiss": "Dismiss",
-  "app.offlineBanner": "You're offline — showing saved data"
+  "app.offlineBanner": "You're offline — showing saved data",
+  "nav.favorites": "Favorites",
+  "favorites.title": "Favorites",
+  "favorites.count": "Your Favorites ({count})",
+  "favorites.empty.title": "No favorites yet",
+  "favorites.empty.desc": "Add games to your favorites list using the star button on any game card.",
+  "favorites.empty.action": "Browse games",
+  "favorites.add": "Add to favorites",
+  "favorites.remove": "Remove from favorites",
+  "detail.copyFailed": "Copy failed — your browser blocked clipboard access.",
+  "search.history.title": "Recent searches",
+  "search.history.clear": "Clear history",
+  "search.history.remove": "Remove \"{query}\" from history",
+  "search.history.empty": "No recent searches yet"
 }

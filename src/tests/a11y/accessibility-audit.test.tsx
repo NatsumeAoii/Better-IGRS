@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { HomePage } from '@/features/home/home-page';
 import { RatingsPage } from '@/features/ratings/ratings-page';
 import { SearchPage } from '@/features/search/search-page';
+import { FavoritesPage } from '@/features/favorites/favorites-page';
 
 /**
  * Accessibility audit tests using axe-core via vitest-axe.
@@ -232,6 +233,19 @@ describe('Accessibility Audit - WCAG 2.1 Level AA', () => {
     const { container } = render(
       <MemoryRouter initialEntries={['/ratings/']}>
         <RatingsPage />
+      </MemoryRouter>
+    );
+
+    await assertNoSeriousViolations(container);
+  });
+
+  it('FavoritesPage has no serious or critical accessibility violations', async () => {
+    // Seed one favorite so the populated grid (card favorite buttons) is audited.
+    window.localStorage.setItem('igrs:favorites', JSON.stringify([1]));
+
+    const { container } = render(
+      <MemoryRouter initialEntries={['/favorites/']}>
+        <FavoritesPage />
       </MemoryRouter>
     );
 

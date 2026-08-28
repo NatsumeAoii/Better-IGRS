@@ -70,6 +70,25 @@ describe('SearchPage filters', () => {
     window.scrollTo = vi.fn();
   });
 
+  it('shows localized feedback when copying the search link is blocked', async () => {
+    Object.defineProperty(window, 'isSecureContext', { configurable: true, value: true });
+    const writeText = vi.spyOn(navigator.clipboard, 'writeText').mockRejectedValue(new DOMException('denied', 'NotAllowedError'));
+    const originalExecCommand = document.execCommand;
+    Object.defineProperty(document, 'execCommand', { configurable: true, value: undefined });
+
+    render(
+      <MemoryRouter initialEntries={['/search/']}>
+        <SearchPage />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'search.copyLink' }));
+    expect(await screen.findByText('search.copyFailed')).toBeInTheDocument();
+
+    writeText.mockRestore();
+    Object.defineProperty(document, 'execCommand', { configurable: true, value: originalExecCommand });
+  });
+
   it('lets users remove one active filter without clearing the rest', async () => {
     render(
       <MemoryRouter initialEntries={['/search/?rating=6&platform=2']}>

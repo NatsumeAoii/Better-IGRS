@@ -94,7 +94,7 @@ function testPagesArtifactDeployTopology() {
   assert(!workflow.includes('sync-pages-root'), '.github/workflows/pages.yml: branch-root sync must not be referenced');
 
   assert(exists('public/CNAME'), 'public/CNAME: custom domain marker should ship inside the Vite public dir so it lands in dist/');
-  for (const relativePath of ['index.html', '404.html', 'sitemap.xml', 'rss.xml', '.nojekyll', 'CNAME', 'assets', 'ratings', 'search', 'steamchecker']) {
+  for (const relativePath of ['index.html', '404.html', 'sitemap.xml', 'rss.xml', '.nojekyll', 'CNAME', 'assets', 'ratings', 'search', 'favorites', 'steamchecker']) {
     assert(!exists(relativePath), `${relativePath}: root-level build output should stay deleted (artifact deploy serves dist/)`);
   }
   assert(!exists('ops/scripts/sync-pages-root.js'), 'ops/scripts/sync-pages-root.js: branch-root sync script should stay deleted');
@@ -136,6 +136,7 @@ function testViteTypescriptConfigurationExists() {
   assert(viteConfig.includes("'search/index.html'"), 'vite.config.ts: expected search page build entry');
   assert(viteConfig.includes("'ratings/index.html'"), 'vite.config.ts: expected ratings page build entry');
   assert(viteConfig.includes("'steamchecker/index.html'"), 'vite.config.ts: expected steam checker build entry');
+  assert(viteConfig.includes("'favorites/index.html'"), 'vite.config.ts: expected favorites page build entry');
 
   const appTsConfig = readJson('config/tsconfig.app.json');
   assert(appTsConfig.compilerOptions.strict === true, 'tsconfig.app.json: strict mode should be enabled');
@@ -157,7 +158,8 @@ function testProjectPagesAssetPathsArePortable() {
     { favicon: '%BASE_URL%assets/icons/favicon.svg', path: 'src/404.html' },
     { favicon: '../assets/icons/favicon.svg', path: 'src/search/index.html' },
     { favicon: '../assets/icons/favicon.svg', path: 'src/ratings/index.html' },
-    { favicon: '../assets/icons/favicon.svg', path: 'src/steamchecker/index.html' }
+    { favicon: '../assets/icons/favicon.svg', path: 'src/steamchecker/index.html' },
+    { favicon: '../assets/icons/favicon.svg', path: 'src/favorites/index.html' }
   ];
   for (const { favicon, path: relativePath } of htmlEntries) {
     const html = read(relativePath);
@@ -214,7 +216,8 @@ function testHtmlEntrypointsUseViteReactRoot() {
     { canonical: 'https://igrs.madeby.my.id/404.html', path: 'src/404.html' },
     { canonical: 'https://igrs.madeby.my.id/search/', path: 'src/search/index.html' },
     { canonical: 'https://igrs.madeby.my.id/ratings/', path: 'src/ratings/index.html' },
-    { canonical: 'https://igrs.madeby.my.id/steamchecker/', path: 'src/steamchecker/index.html' }
+    { canonical: 'https://igrs.madeby.my.id/steamchecker/', path: 'src/steamchecker/index.html' },
+    { canonical: 'https://igrs.madeby.my.id/favorites/', path: 'src/favorites/index.html' }
   ];
 
   for (const { canonical, path: relativePath } of entries) {
@@ -260,6 +263,7 @@ function testAutomationTargetsVitePublicData() {
   assert(runner.includes("ready: '[data-route-ready=\"home\"]'"), 'src/tools/visual-compat-runner.html: expected React-ready home selector');
   assert(runner.includes("ready: '[data-route-ready=\"search\"]'"), 'src/tools/visual-compat-runner.html: expected React-ready search selector');
   assert(runner.includes("ready: '[data-route-ready=\"ratings\"]'"), 'src/tools/visual-compat-runner.html: expected React-ready ratings selector');
+  assert(runner.includes("ready: '[data-route-ready=\"favorites\"]'"), 'src/tools/visual-compat-runner.html: expected React-ready favorites selector');
 }
 
 function testRepositoryFinalizationHygiene() {

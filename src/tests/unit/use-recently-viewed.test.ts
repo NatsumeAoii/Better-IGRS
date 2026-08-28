@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach } from 'vitest';
 import * as fc from 'fast-check';
-import { recordRecentlyViewed, clearRecentlyViewed } from '@/shared/hooks/use-recently-viewed';
+import { parseRecentlyViewedIds, recordRecentlyViewed, clearRecentlyViewed } from '@/shared/hooks/use-recently-viewed';
 
 const STORAGE_KEY = 'igrs-recent';
 const MAX_ITEMS = 8;
@@ -10,20 +10,6 @@ const MAX_ITEMS = 8;
  */
 function readStoredIds(): number[] {
   const raw = sessionStorage.getItem(STORAGE_KEY);
-  if (!raw) return [];
-  try {
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter((id): id is number => Number.isFinite(id)).slice(0, MAX_ITEMS);
-  } catch {
-    return [];
-  }
-}
-
-/**
- * Inline parseIds for testing Property 4 (it's not exported, so we replicate the logic).
- */
-function parseIds(raw: string | null): number[] {
   if (!raw) return [];
   try {
     const parsed = JSON.parse(raw);
@@ -173,7 +159,7 @@ describe('parseIds', () => {
         fc.property(
           fc.string(),
           (input) => {
-            const result = parseIds(input);
+            const result = parseRecentlyViewedIds(input);
 
             // every element is a finite number
             for (const item of result) {
@@ -195,7 +181,7 @@ describe('parseIds', () => {
         fc.property(
           fc.constant(null),
           (input) => {
-            const result = parseIds(input);
+            const result = parseRecentlyViewedIds(input);
             expect(Array.isArray(result)).toBe(true);
             expect(result.length).toBe(0);
           }
@@ -207,35 +193,39 @@ describe('parseIds', () => {
 
   describe('Example-based tests', () => {
     it('parses valid JSON array of numbers', () => {
-      expect(parseIds('[1, 2, 3]')).toEqual([1, 2, 3]);
+      expect(parseRecentlyViewedIds('[1, 2, 3]')).toEqual([1, 2, 3]);
     });
 
     it('returns empty array for invalid JSON', () => {
-      expect(parseIds('not json')).toEqual([]);
+      expect(parseRecentlyViewedIds('not json')).toEqual([]);
     });
 
     it('returns empty array for non-array JSON', () => {
-      expect(parseIds('{"a": 1}')).toEqual([]);
-      expect(parseIds('"hello"')).toEqual([]);
-      expect(parseIds('42')).toEqual([]);
+      expect(parseRecentlyViewedIds('{"a": 1}')).toEqual([]);
+      expect(parseRecentlyViewedIds('"hello"')).toEqual([]);
+      expect(parseRecentlyViewedIds('42')).toEqual([]);
     });
 
     it('filters out non-finite values from arrays', () => {
       // NaN is not valid JSON, so use valid JSON with non-numeric types
-      expect(parseIds('[1, "two", null, 3, true]')).toEqual([1, 3]);
+      expect(parseRecentlyViewedIds('[1, "two", null, 3, true]')).toEqual([1, 3]);
+    });
+
+    it('filters non-positive, fractional, and duplicate IDs', () => {
+      expect(parseRecentlyViewedIds('[4, 4, 2.5, 0, -1, 7]')).toEqual([4, 7]);
     });
 
     it('caps at 8 items', () => {
       const longArray = JSON.stringify(Array.from({ length: 20 }, (_, i) => i + 1));
-      expect(parseIds(longArray).length).toBe(8);
+      expect(parseRecentlyViewedIds(longArray).length).toBe(8);
     });
 
     it('returns empty array for null input', () => {
-      expect(parseIds(null)).toEqual([]);
+      expect(parseRecentlyViewedIds(null)).toEqual([]);
     });
 
     it('returns empty array for empty string', () => {
-      expect(parseIds('')).toEqual([]);
+      expect(parseRecentlyViewedIds('')).toEqual([]);
     });
   });
 });

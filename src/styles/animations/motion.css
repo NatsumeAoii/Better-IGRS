@@ -1,0 +1,38 @@
+/* ═══════════════════════════════════════════════════════════════
+   MOTION — Reduced motion overrides & smooth transitions
+   Respects user preferences, maintains accessibility.
+   ═══════════════════════════════════════════════════════════════ */
+
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* ─── Transitions ───────────────────────────────────────────── */
+.transition-all {
+  transition: all 0.2s var(--ease);
+}
+
+.transition-colors {
+  transition: color 0.15s, background-color 0.15s, border-color 0.15s;
+}
+
+.transition-transform {
+  transition: transform 0.15s var(--ease);
+}
+
+/* ─── Easing Function ───────────────────────────────────────── */
+:root {
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+}

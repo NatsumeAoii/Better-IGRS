@@ -1,11 +1,11 @@
-const js = require('@eslint/js');
-const globals = require('globals');
-const reactHooks = require('eslint-plugin-react-hooks');
-const tseslint = require('typescript-eslint');
+import js from '@eslint/js';
+import globals from 'globals';
+import reactHooks from 'eslint-plugin-react-hooks';
+import tseslint from 'typescript-eslint';
 
 const tsFiles = ['src/**/*.{ts,tsx}', 'config/*.ts'];
 
-module.exports = tseslint.config(
+export default tseslint.config(
   {
     ignores: [
       'dist',

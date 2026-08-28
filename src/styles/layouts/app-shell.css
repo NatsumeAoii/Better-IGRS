@@ -1,0 +1,62 @@
+/* ═══════════════════════════════════════════════════════════════
+   LAYOUT — App Shell & Grid Utilities
+   Main layout structure, grid helpers.
+   ═══════════════════════════════════════════════════════════════ */
+
+.app-layout {
+  max-width: var(--layout-wide);
+  margin: 0 auto;
+  padding: var(--layout-gutter);
+  display: flex;
+  gap: var(--layout-gap);
+  align-items: flex-start;
+  width: 100%;
+  flex: 1;
+}
+
+.app-layout.detail-active {
+  align-items: center;
+  gap: 0;
+}
+
+.main-content {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Search filters stay available beside long result lists without growing the
+   page column beyond the viewport. The inner feature container owns scrolling. */
+.sidebar {
+  width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width);
+  min-width: 0;
+  position: sticky;
+  top: var(--layout-gutter);
+}
+
+.sidebar--collapsed {
+  display: none;
+}
+
+/* ─── Grid utilities ────────────────────────────────────────── */
+.grid {
+  display: grid;
+}
+
+.grid-col-2 { grid-template-columns: repeat(2, 1fr); }
+.grid-col-3 { grid-template-columns: repeat(3, 1fr); }
+.grid-col-4 { grid-template-columns: repeat(4, 1fr); }
+
+@media (max-width: 768px) {
+  .sidebar {
+    width: 100%;
+    flex-basis: auto;
+    position: static;
+  }
+
+  .grid-col-2,
+  .grid-col-3,
+  .grid-col-4 {
+    grid-template-columns: 1fr;
+  }
+}

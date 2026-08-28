@@ -50,9 +50,9 @@ fetches are covered by CSP `connect-src 'self'` with no extra exceptions.
 
 ### First load
 
-1. GitHub Pages serves one of five HTML entries (`index.html`, `404.html`,
-   `ratings/index.html`, `search/index.html`, `steamchecker/index.html`) — see
-   "Multiple HTML entries" below.
+1. GitHub Pages serves one of six HTML entries (`index.html`, `404.html`,
+   `ratings/index.html`, `search/index.html`, `steamchecker/index.html`,
+   `favorites/index.html`) — see "Multiple HTML entries" below.
 2. Hashed JS/CSS chunks load (`Cache-Control: public, max-age=31536000,
    immutable` policy), React mounts, and the data provider fetches:
    - `/assets/data/json/igrs.meta.json` — ratings/descriptors/platforms metadata

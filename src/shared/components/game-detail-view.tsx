@@ -1,9 +1,11 @@
 import { Check, Copy, Search, User } from 'lucide-react';
 import { useMemo, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
+import { APP_BASE_PATH } from '@/core/constants';
 import { IGRS_LOGO_URL } from '@/core/constants';
 import { safeHttpUrl } from '@/core/safe-render';
 import { DescriptorIcons } from '@/shared/components/descriptor-icons';
+import { FavoriteButton } from '@/shared/components/favorite-button';
 import { RatingBadge } from '@/shared/components/rating-badge';
 import { copyTextToClipboard } from '@/shared/lib/clipboard';
 import { descriptorIdsFromGame, ratingIdsFromGame, ratingName, ratingTitle } from '@/shared/lib/ratings';
@@ -11,6 +13,11 @@ import { platformIdsFromGame, platformName } from '@/shared/lib/platforms';
 import { findRelatedGames } from '@/shared/lib/related-games';
 import { formatExtraField } from '@/shared/lib/extra-field';
 import type { IgrsGame, IgrsMeta, SteamSearchResult } from '@/shared/types';
+
+/** True when a navigator.share rejection is a normal user cancellation. */
+function isAbortError(error: unknown): boolean {
+  return (error as { name?: string } | null)?.name === 'AbortError';
+}
 
 interface GameDetailViewProps {
   /** All games in the dataset — used to compute related games */
@@ -27,6 +34,7 @@ interface GameDetailViewProps {
 export function GameDetailView({ allGames, game, lang, meta, steamMatch, t, unlocked }: GameDetailViewProps) {
   const [copied, setCopied] = useState(false);
   const [copiedId, setCopiedId] = useState(false);
+  const [copyFailed, setCopyFailed] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const ratingId = ratingIdsFromGame(game)[0] || null;
   const ratingIds = ratingIdsFromGame(game);
@@ -41,21 +49,42 @@ export function GameDetailView({ allGames, game, lang, meta, steamMatch, t, unlo
     return findRelatedGames(game, allGames);
   }, [game, allGames]);
 
-  const copyShareUrl = async () => {
+  // Canonical game URL, base-path aware (GitHub Pages serves under a prefix).
+  const gameShareUrl = `${window.location.origin}${APP_BASE_PATH === '/' ? '' : APP_BASE_PATH}/game/${game.id}`;
+
+  const showCopyFailure = (): void => {
+    setCopyFailed(true);
+    window.setTimeout(() => setCopyFailed(false), 4000);
+  };
+
+  const copyShareUrl = async (): Promise<void> => {
     if (navigator.share) {
       try {
-        await navigator.share({ title: game.name, url: window.location.href });
-      } catch { /* user cancelled */ }
-    } else if (await copyTextToClipboard(`${window.location.origin}/game/${game.id}`)) {
+        await navigator.share({ title: game.name, url: gameShareUrl });
+        return;
+      } catch (error) {
+        // User closed the share sheet — a normal cancellation, not an error.
+        if (isAbortError(error)) return;
+        // Any other share rejection falls through to the clipboard fallback.
+      }
+    }
+    if (await copyTextToClipboard(gameShareUrl)) {
+      setCopyFailed(false);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 2000);
+    } else {
+      // Clipboard access can be blocked outside secure contexts — surface it.
+      showCopyFailure();
     }
   };
 
-  const copyGameId = async () => {
+  const copyGameId = async (): Promise<void> => {
     if (await copyTextToClipboard(String(game.id))) {
+      setCopyFailed(false);
       setCopiedId(true);
       window.setTimeout(() => setCopiedId(false), 2000);
+    } else {
+      showCopyFailure();
     }
   };
 
@@ -108,11 +137,12 @@ export function GameDetailView({ allGames, game, lang, meta, steamMatch, t, unlo
         {inGame ? <DetailLinkRow label={t('detail.ingame')} value={inGame} /> : null}
       </div>
       <div className="detail-actions">
-        <button className={`detail-share-btn${copied ? ' copied' : ''}`} type="button" onClick={copyShareUrl}>
+        <FavoriteButton gameId={game.id} t={t} />
+        <button className={`detail-share-btn${copied ? ' copied' : ''}`} type="button" onClick={() => void copyShareUrl()}>
           {copied ? <Check className="ui-icon" aria-hidden="true" /> : <Copy className="ui-icon" aria-hidden="true" />}
           <span>{copied ? t('detail.copied') : t('detail.share')}</span>
         </button>
-        <span aria-live="polite" className="sr-only">{copied ? t('detail.copied') : ''}</span>
+        <span aria-live="polite" className="sr-only">{copied ? t('detail.copied') : copyFailed ? t('detail.copyFailed') : ''}</span>
         <Link className="detail-link-btn" to={`/search/?publisher=${encodeURIComponent(game.publisherName)}`}>
           <User className="ui-icon" aria-hidden="true" />
           <span>{t('detail.viewPublisher').replace('{publisher}', game.publisherName)}</span>
@@ -126,6 +156,9 @@ export function GameDetailView({ allGames, game, lang, meta, steamMatch, t, unlo
           <span>{t('detail.searchGoogle')}</span>
         </a>
       </div>
+      {copyFailed && (
+        <p className="detail-copy-error">{t('detail.copyFailed')}</p>
+      )}
       <SteamMatchPanel result={steamMatch} t={t} />
       {relatedGames.length > 0 && (
         <RelatedGamesSection games={relatedGames} meta={meta} t={t} />

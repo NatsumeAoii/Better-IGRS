@@ -129,7 +129,8 @@ export default defineConfig(async () => {
           fallback: htmlEntry('404.html'),
           ratings: htmlEntry('ratings/index.html'),
           search: htmlEntry('search/index.html'),
-          steamchecker: htmlEntry('steamchecker/index.html')
+          steamchecker: htmlEntry('steamchecker/index.html'),
+          favorites: htmlEntry('favorites/index.html')
         },
         output: {
           manualChunks(id: string) {

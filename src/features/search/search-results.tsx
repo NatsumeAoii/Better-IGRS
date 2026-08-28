@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { ExternalLink, Gamepad2 } from 'lucide-react';
 import { DescriptorIcons } from '@/shared/components/descriptor-icons';
+import { FavoriteButton } from '@/shared/components/favorite-button';
 import { highlight } from '@/shared/lib/text';
 import { descriptorIdsFromGame, ratingIdsFromGame, ratingName } from '@/shared/lib/ratings';
 import { platformIdsFromGame, platformName } from '@/shared/lib/platforms';
@@ -35,7 +36,8 @@ interface GameCardProps {
   steamApi?: SteamApi;
 }
 
-const GameCard = memo(function GameCard({ game, lang, meta, publisherQuery, query, t, steamApi }: GameCardProps) {
+// Exported for the favorites page, which renders the same card grid.
+export const GameCard = memo(function GameCard({ game, lang, meta, publisherQuery, query, t, steamApi }: GameCardProps) {
   const ratingId = useMemo(() => ratingIdsFromGame(game)[0] || null, [game]);
   const allDescriptorIds = useMemo(() => descriptorIdsFromGame(game), [game]);
   const descriptorIds = useMemo(() => allDescriptorIds.slice(0, 4), [allDescriptorIds]);
@@ -88,6 +90,7 @@ const GameCard = memo(function GameCard({ game, lang, meta, publisherQuery, quer
           </div>
         </div>
         <div className={cardStyles.gameCardRight}>
+          <FavoriteButton gameId={game.id} t={t} />
           {ratingId ? <span className={cardStyles.ratingBadge} data-rating={ratingId}>{ratingName(meta, ratingId)}</span> : null}
           {steamAppId ? (
             <Link

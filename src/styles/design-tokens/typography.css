@@ -1,0 +1,30 @@
+/* ═══════════════════════════════════════════════════════════════
+   TYPOGRAPHY — Fluid scaling with clamp()
+   Font sizes, weights, line-heights using responsive approach.
+   ═══════════════════════════════════════════════════════════════ */
+
+html {
+  font-size: clamp(85%, 0.85rem + 0.3vw, 93.75%); /* ~13.6px to ~15px base */
+}
+
+body {
+  font-family: 'Raleway', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-weight: 400;
+  color: var(--color-text-primary);
+  line-height: 1.6;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+h1 { font-size: clamp(1.6rem, 1.2rem + 2vw, 2.5rem); }
+h2 { font-size: clamp(1.3rem, 1.1rem + 1vw, 1.6rem); }
+h3 { font-size: clamp(1.1rem, 1rem + 0.5vw, 1.2rem); }
+h4 { font-size: 1rem; }

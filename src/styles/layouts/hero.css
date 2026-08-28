@@ -1,0 +1,23 @@
+/* ═══════════════════════════════════════════════════════════════
+   LAYOUT — Hero Section
+   Homepage hero banner styles.
+   ═══════════════════════════════════════════════════════════════ */
+
+.hero {
+  text-align: center;
+  padding: clamp(2rem, 5vw, 3rem) 0;
+}
+
+.hero-title {
+  font-size: clamp(1.8rem, 4vw, 2.5rem);
+  font-weight: 800;
+  margin-bottom: 0.75rem;
+}
+
+.hero-subtitle {
+  font-size: 1.05rem;
+  color: var(--text-secondary);
+  max-width: 600px;
+  margin: 0 auto;
+  line-height: 1.6;
+}

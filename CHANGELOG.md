@@ -4,6 +4,28 @@ All notable changes to this project are documented here.
 
 This file follows the Keep a Changelog section model: Added, Changed, Deprecated, Removed, Fixed, and Security. The project package version is currently `0.0.5`; the visible Git history also contains a `v0.0.1` commit message without a tag in this checkout.
 
+## [Unreleased]
+
+### Added
+
+- Favorites feature: star toggle with accessible pressed state on game cards and the game detail view, a lazy `/favorites/` route with direct GitHub Pages HTML entry, Vite rollup input, navigation entries (desktop + mobile), and sitemap coverage. Stored IDs live under the namespaced `igrs:favorites` key (max 50, positive integers only) and are resolved through `gamesById`, silently omitting IDs missing from refreshed datasets.
+- Recent-search history on the search page: up to 10 normalized queries under the namespaced `igrs:search-history` key, shown only while the search input is empty and focused, with per-entry remove buttons and a localized clear-history action.
+- Complete ARIA combobox pattern (arrow keys, Enter, Escape, `aria-activedescendant`, focus retention) for the publisher autocomplete.
+
+### Changed
+
+- Search CSV export now neutralizes formula-injection leading characters (`=`, `+`, `-`, `@`) with a single-quote guard and downloads with an explicit `text/csv;charset=utf-8` MIME type; CSV building is extracted to `src/features/search/export-csv.ts` with unit tests.
+- Publisher autocomplete options are keyboard-reachable; active descendant is highlighted.
+
+### Fixed
+
+- Web Share cancellation (`AbortError`) is treated as a normal dismissal without fallback noise; clipboard copy failures now surface an inline localized failure message (previously silent) and the clipboard fallback URL respects the deployment base path.
+- Search history recording happens on query submission (Enter/blur) instead of on every keystroke.
+
+### Removed
+
+- Prototype toast notification provider and its stylesheet (out of scope of the improvement plan; inline and live-region feedback is used instead).
+
 ## [0.0.5] - 2026-08-26
 
 ### Added

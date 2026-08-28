@@ -13,6 +13,7 @@ interface MobileNavProps {
 const NAV_LINKS = [
   { to: '/', key: 'nav.home' as const },
   { to: '/search/', key: 'nav.search' as const },
+  { to: '/favorites/', key: 'nav.favorites' as const },
   { to: '/ratings/', key: 'nav.ratings' as const },
   { to: '/steamchecker/', key: 'nav.steamchecker' as const },
 ] as const;

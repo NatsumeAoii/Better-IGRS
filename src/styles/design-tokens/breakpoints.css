@@ -1,0 +1,12 @@
+/* ═══════════════════════════════════════════════════════════════
+   BREAKPOINTS — Media query constants
+   Literal breakpoint values for consistent responsive design.
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ─── Mobile-first breakpoints ────────────────────────────── */
+  --bp-sm: 640px;   /* Small tablets / large phones */
+  --bp-md: 768px;   /* Tablets */
+  --bp-lg: 1024px;  /* Desktops */
+  --bp-xl: 1280px;  /* Large desktops */
+}

@@ -11,6 +11,23 @@
   padding: var(--panel-padding);
 }
 
+.sidebarScroll {
+  height: min(720px, calc(100vh - 2 * var(--layout-gutter)));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  padding: 1px;
+}
+
+.sidebarScroll > :global(.filter-clear-action) {
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
+  margin-top: var(--space-2);
+  box-shadow: 0 -8px 12px var(--bg-page);
+}
+
 .searchRow {
   display: flex;
   gap: 0.6rem;
@@ -350,6 +367,7 @@
   align-items: center;
   gap: 0.3rem;
   min-height: 44px;
+  min-width: 44px;
   padding: 0.35rem 0.7rem;
   margin-top: var(--space-1);
   font-size: 0.72rem;
@@ -407,6 +425,17 @@
 }
 
 @media (max-width: 767px) {
+  .sidebarScroll {
+    height: auto;
+    overflow: visible;
+    padding: 0;
+  }
+
+  .sidebarScroll > .clearBtn {
+    position: static;
+    box-shadow: none;
+  }
+
   .searchShortcutHint {
     display: none;
   }
@@ -506,6 +535,14 @@
   background: var(--bg);
 }
 
+/* Active descendant of the publisher combobox (keyboard navigation) */
+.autocompleteItemActive,
+.autocompleteItemActive:hover {
+  background: var(--primary-light);
+  color: var(--primary);
+  font-weight: 600;
+}
+
 .autocompleteCount {
   flex-shrink: 0;
   font-size: 0.72rem;
@@ -526,5 +563,13 @@
   .skeletonGrid {
     grid-template-columns: repeat(2, 1fr);
   }
+}
+
+.copySearchError {
+  display: block;
+  margin-top: var(--space-1);
+  color: var(--r18);
+  font-size: 0.75rem;
+  font-weight: 600;
 }
 

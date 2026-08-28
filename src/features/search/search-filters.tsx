@@ -196,7 +196,7 @@ export function FilterSidebar(props: FilterSidebarProps) {
           />
         </FilterPanel>
       )}
-      <button className={`${styles.clearBtn}${hasFilters ? '' : ` ${styles.clearBtnHidden}`}`} type="button" onClick={() => clearAll()}>
+      <button className={`filter-clear-action ${styles.clearBtn}${hasFilters ? '' : ` ${styles.clearBtnHidden}`}`} type="button" onClick={() => clearAll()}>
         {t('filter.clear')}
       </button>
     </>

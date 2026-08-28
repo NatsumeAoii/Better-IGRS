@@ -48,7 +48,7 @@ scripts/          CI helper scripts (bundle size checking)
 src/              Application source code
   src/app/        App shell, router, providers (theme, language, data)
   src/core/       Framework-light domain logic (search indexing, i18n, contracts, Steam normalization)
-  src/features/   Route-level UI (home, search, game, ratings, steam-checker, fallback)
+  src/features/   Route-level UI (home, search, game, favorites, ratings, steam-checker, fallback)
   src/shared/     Shared API clients, reusable components, hooks, and utility libraries
   src/styles/     Global CSS (tokens, reset, typography) and feature CSS modules
   src/tests/      Unit, integration, property-based, performance, a11y, security, visual, and structure tests
@@ -190,7 +190,7 @@ Node.js 22.12.0 or newer. The `engines` field in `package.json` enforces this. C
 
 <details><summary><strong>Why does the project use multiple HTML entry points?</strong></summary>
 
-Vite is configured with multiple rollup inputs (`src/index.html`, `src/404.html`, `src/ratings/index.html`, `src/search/index.html`, `src/steamchecker/index.html`). Each maps to a route that GitHub Pages can serve directly, enabling deep-link navigation without server-side rewriting. All entry points render the same React app but at different base paths.
+Vite is configured with multiple rollup inputs (`src/index.html`, `src/404.html`, `src/ratings/index.html`, `src/search/index.html`, `src/steamchecker/index.html`, `src/favorites/index.html`). Each maps to a route that GitHub Pages can serve directly, enabling deep-link navigation without server-side rewriting. All entry points render the same React app but at different base paths.
 
 </details>
 

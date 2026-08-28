@@ -1,0 +1,38 @@
+/* ═══════════════════════════════════════════════════════════════
+   DESIGN TOKENS — Spacing, Colors, Z-Index
+   Core primitive values used across the application.
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ─── Spacing scale (base-8) ──────────────────────────────── */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+
+  /* ─── Semantic colors ─────────────────────────────────────── */
+  --color-surface: #ffffff;
+  --color-background: #f8fafc;
+  --color-text-primary: #111827;
+  --color-text-secondary: #6b7280;
+  --color-border: #e5e7eb;
+  --color-accent: #3b82f6;
+  --color-error: #ef4444;
+  --color-success: #22c55e;
+
+  /* ─── Z-index scale ───────────────────────────────────────── */
+  --z-base: 0;
+  --z-sticky: 100;
+  --z-dropdown: 200;
+  --z-overlay: 300;
+  --z-modal: 400;
+  --z-toast: 500;
+
+  /* ─── Breakpoints (reference only — used in media queries) ─── */
+  --bp-mobile: 375px;
+  --bp-tablet: 768px;
+  --bp-desktop: 1280px;
+}

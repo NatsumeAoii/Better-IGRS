@@ -226,5 +226,18 @@
   "card.steamCheck": "Cek di Steam",
   "app.devUnlocked": "Mode developer terbuka â€” kolom tautan ekstra, inspektor data mentah, dan kartu pemeriksa Steam lanjutan kini terlihat.",
   "app.dismiss": "Tutup",
-  "app.offlineBanner": "Anda sedang offline — menampilkan data tersimpan"
+  "app.offlineBanner": "Anda sedang offline — menampilkan data tersimpan",
+  "nav.favorites": "Favorit",
+  "favorites.title": "Favorit",
+  "favorites.count": "Favorit Anda ({count})",
+  "favorites.empty.title": "Belum ada favorit",
+  "favorites.empty.desc": "Tambahkan game ke daftar favorit menggunakan tombol bintang di kartu game mana pun.",
+  "favorites.empty.action": "Jelajahi game",
+  "favorites.add": "Tambahkan ke favorit",
+  "favorites.remove": "Hapus dari favorit",
+  "detail.copyFailed": "Gagal menyalin — peramban Anda memblokir akses clipboard.",
+  "search.history.title": "Pencarian terakhir",
+  "search.history.clear": "Hapus riwayat",
+  "search.history.remove": "Hapus \"{query}\" dari riwayat",
+  "search.history.empty": "Belum ada pencarian terakhir"
 }

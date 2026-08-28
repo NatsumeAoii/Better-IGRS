@@ -1,0 +1,81 @@
+/* ═══════════════════════════════════════════════════════════════
+   COMPONENTS — Overlays & Alerts
+   Offline banner, developer toast, error states.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ─── Developer Unlock Toast ─────────────────────────────── */
+.dev-toast {
+  position: fixed;
+  bottom: 1.5rem;
+  inset-inline-start: 1.5rem;
+  z-index: var(--z-toast);
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  max-width: min(26rem, calc(100vw - 3rem));
+  padding: 0.75rem 0.9rem;
+  background: var(--bg-card);
+  border: 1.5px solid var(--primary);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lift);
+  animation: fadeIn 0.25s var(--ease);
+}
+
+.dev-toast-text {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.dev-toast-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  min-height: 32px;
+  margin: -0.25rem -0.25rem 0 0;
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+.dev-toast-close:hover {
+  background: var(--bg-page);
+  color: var(--text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dev-toast {
+    animation: none;
+  }
+}
+
+/* ─── Offline Banner ───────────────────────────────────────── */
+.offline-banner {
+  position: fixed;
+  bottom: 0;
+  inset-inline: 0;
+  z-index: var(--z-toast);
+  padding: var(--space-2) var(--space-4);
+  background: var(--bg-card);
+  border-top: 1.5px solid var(--primary);
+  color: var(--text);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .offline-banner {
+    animation: fadeIn 0.25s var(--ease);
+  }
+}
+
+[data-theme="dark"] .offline-banner {
+  background: var(--bg-card);
+  border-color: var(--primary);
+}

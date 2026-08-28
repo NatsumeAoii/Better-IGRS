@@ -1,0 +1,87 @@
+/* ═══════════════════════════════════════════════════════════════
+   FAVORITES PAGE — Grid layout and title styles
+   ═══════════════════════════════════════════════════════════════ */
+
+.favorites-page {
+  max-width: var(--layout-wide);
+  margin: 0 auto;
+  padding: var(--layout-gutter);
+}
+
+.favorites-page-title {
+  font-size: clamp(1.6rem, 4vw, 2.2rem);
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 1.5rem;
+}
+
+.favorites-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--layout-gap);
+}
+
+/* ─── Favorites empty state ──────────────────────────────────── */
+
+.favorites-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 3rem 1.5rem;
+  text-align: center;
+}
+
+.favorites-empty-star {
+  width: 48px;
+  height: 48px;
+  color: var(--text-muted);
+}
+
+.favorites-empty-action {
+  margin-top: 0.5rem;
+}
+
+/* ─── Favorite toggle button (cards + detail view) ───────────── */
+
+.favorite-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background-color 0.15s, transform 0.15s;
+}
+
+.favorite-toggle:hover {
+  color: var(--primary);
+  border-color: var(--primary);
+}
+
+.favorite-toggle:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.favorite-toggle--active {
+  color: var(--primary);
+  border-color: var(--primary);
+  background: var(--primary-light);
+}
+
+.favorite-toggle--active:hover {
+  color: var(--primary);
+}
+
+/* Press feedback: transform-only motion, disabled for reduced motion */
+@media (prefers-reduced-motion: no-preference) {
+  .favorite-toggle:active {
+    transform: scale(0.92);
+  }
+}

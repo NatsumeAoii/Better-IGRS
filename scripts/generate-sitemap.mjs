@@ -22,6 +22,7 @@ const baseUrl = 'https://igrs.madeby.my.id';
 const staticRoutes = [
   { url: '/', priority: 1.0, changefreq: 'daily' },
   { url: '/search/', priority: 0.9, changefreq: 'daily' },
+  { url: '/favorites/', priority: 0.6, changefreq: 'weekly' },
   { url: '/ratings/', priority: 0.8, changefreq: 'weekly' },
   { url: '/steamchecker/', priority: 0.7, changefreq: 'weekly' },
 ];

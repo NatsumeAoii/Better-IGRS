@@ -1,1 +1,39 @@
-@import "./global.css";
+/* ═══════════════════════════════════════════════════════════════
+   APP STYLESHEETS — Modular Architecture
+   Imports organized by category for maintainability.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ─── Design Tokens (Primitives) ────────────────────────────── */
+@import "./design-tokens/variables.css";
+@import "./design-tokens/typography.css";
+@import "./design-tokens/breakpoints.css";
+@import "./design-tokens/z-index.css";
+
+/* ─── Resets ────────────────────────────────────────────────── */
+@import "./resets/base.css";
+@import "./resets/forms.css";
+@import "./resets/list-reset.css";
+
+/* ─── Animations & Motion ───────────────────────────────────── */
+@import "./animations/keyframes.css";
+@import "./animations/motion.css";
+
+/* ─── Themes ────────────────────────────────────────────────── */
+@import "./themes/light.css";
+@import "./themes/dark.css";
+
+/* ─── Layouts ───────────────────────────────────────────────── */
+@import "./layouts/app-shell.css";
+@import "./layouts/hero.css";
+
+/* ─── Components ────────────────────────────────────────────── */
+@import "./components/buttons.css";
+@import "./components/header.css";
+@import "./components/footer.css";
+@import "./components/cards.css";
+@import "./components/badges.css";
+@import "./components/modals.css";
+@import "./components/overlays.css";
+@import "./components/search-history.css";
+@import "./components/favorites.css";
+@import "./components/utility.css";

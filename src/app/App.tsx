@@ -32,6 +32,9 @@ const SteamCheckerPage = lazy(() =>
 const GamePage = lazy(() =>
   import('@/features/game/game-page').then((m) => ({ default: m.GamePage }))
 );
+const FavoritesPage = lazy(() =>
+  import('@/features/favorites/favorites-page').then((m) => ({ default: m.FavoritesPage }))
+);
 
 export function App() {
   const routerBasename = APP_BASE_PATH === '/' ? undefined : APP_BASE_PATH;
@@ -62,6 +65,16 @@ export function App() {
                     <LocalizedRouteErrorBoundary>
                       <Suspense fallback={<LoadingState label="Loading…" />}>
                         <RatingsPage />
+                      </Suspense>
+                    </LocalizedRouteErrorBoundary>
+                  }
+                />
+                <Route
+                  path="/favorites/"
+                  element={
+                    <LocalizedRouteErrorBoundary>
+                      <Suspense fallback={<LoadingState label="Loading…" />}>
+                        <FavoritesPage />
                       </Suspense>
                     </LocalizedRouteErrorBoundary>
                   }

@@ -1,0 +1,81 @@
+/* ═══════════════════════════════════════════════════════════════
+   THEME — Light Mode (Default)
+   Base color tokens for light theme system.
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+  /* Legacy token definitions */
+  color-scheme: light;
+  accent-color: var(--primary);
+  
+  --primary: #4338ca;
+  --primary-light: #e0e7ff;
+  --primary-hover: #3730a3;
+  --focus-ring: rgba(67, 56, 202, 0.2);
+
+  --text: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  --text-light: #687586;
+
+  --bg: #ffffff;
+  --bg-page: #f8fafc;
+  --bg-sidebar: #ffffff;
+  --bg-card: #ffffff;
+  --bg-input: #ffffff;
+
+  --border: #e2e8f0;
+  --border-hover: #cbd5e1;
+
+  --r3: #22c55e;
+  --r3-bg: #ecfdf5;
+  --r7: #06b6d4;
+  --r7-bg: #ecfeff;
+  --r13: #eab308;
+  --r13-bg: #fefce8;
+  --r15: #f97316;
+  --r15-bg: #fff7ed;
+  --r18: #ef4444;
+  --r18-bg: #fef2f2;
+
+  --radius: 8px;
+  --radius-sm: 6px;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-lift: 0 6px 16px rgba(0, 0, 0, 0.12);
+
+  /* Warning/alert tokens */
+  --warning-bg: #fef3c7;
+  --warning-text: #92400e;
+  --warning-border: #fde68a;
+
+  /* Spacing scale for consistent gaps/margins */
+  --space-0: 0;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+
+  --sidebar-width: 280px;
+  --layout-wide: 1280px;
+  --layout-page: 1040px;
+  --layout-readable: 860px;
+  --layout-gutter: clamp(1rem, 2.2vw, 1.75rem);
+  --layout-gap: clamp(1rem, 2vw, 1.5rem);
+  --section-gap: clamp(1.75rem, 4vw, 3rem);
+  --panel-padding: clamp(1rem, 1.8vw, 1.35rem);
+  --card-padding: clamp(0.95rem, 1.8vw, 1.35rem);
+  --card-gap: 0.9rem;
+}
+
+body {
+  background: var(--bg-page);
+}
+
+[data-theme="dark"] body {
+  background-image:
+    linear-gradient(to right, rgba(155, 111, 223, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(155, 111, 223, 0.04) 1px, transparent 1px);
+}

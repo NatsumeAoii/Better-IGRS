@@ -14,13 +14,16 @@ import { SearchResults } from '@/features/search/search-results';
 import { GameDetailInline } from '@/features/search/game-detail-inline';
 import { buildActiveFilters } from '@/features/search/build-active-filters';
 import { computeSuggestion } from '@/features/search/search-suggestions';
+import { buildCsvDocument, downloadCsvDocument } from '@/features/search/export-csv';
 import { useSearchFilters } from '@/features/search/use-search-filters';
+import { useSearchHistory } from '@/features/search/use-search-history';
 import { useDetailPanel } from '@/features/search/use-detail-panel';
 import { useSearchShortcut } from '@/features/search/use-search-shortcut';
 import { useSteamApi } from '@/shared/hooks/use-steam-api';
-import { descriptorIdsFromGame, descriptorName, ratingName } from '@/shared/lib/ratings';
-import { platformIdsFromGame, platformName } from '@/shared/lib/platforms';
+import { descriptorName, ratingName } from '@/shared/lib/ratings';
+import { platformName } from '@/shared/lib/platforms';
 import { fuzzyScoreNormalized } from '@/core/search-index';
+import { readSessionStorage, removeSessionStorage, writeSessionStorage } from '@/shared/lib/browser-storage';
 import pageStyles from './search-page.module.css';
 
 export function SearchPage() {
@@ -42,12 +45,19 @@ export function SearchPage() {
     hasActiveFilters,
   } = useSearchFilters();
 
+  // Recent-search history store (plan 1.4) — committed on Enter/blur via
+  // SearchHeader's onCommitQuery, never on raw keystrokes.
+  const searchHistory = useSearchHistory();
+
   useSearchShortcut();
 
-  const [resultsPerPage, setResultsPerPage] = useState<number>(() => { try { return Number(sessionStorage.getItem('search-rpp')) || 30; } catch { return 30; } });
+  const [resultsPerPage, setResultsPerPage] = useState<number>(() => {
+    const stored = Number(readSessionStorage('igrs:search-rpp'));
+    return stored === 30 || stored === 60 || stored === 99999 ? stored : 30;
+  });
   const handleResultsPerPageChange = useCallback((rpp: number) => {
     setResultsPerPage(rpp);
-    try { sessionStorage.setItem('search-rpp', String(rpp)); } catch { /* noop */ }
+    writeSessionStorage('igrs:search-rpp', String(rpp));
   }, []);
 
   const publishers = useMemo(() => {
@@ -88,10 +98,11 @@ export function SearchPage() {
     if (filterVersion > 0) {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
-      const saved = sessionStorage.getItem('search-scroll');
-      if (saved) {
-        window.scrollTo({ top: Number(saved), behavior: 'instant' as ScrollBehavior });
-        sessionStorage.removeItem('search-scroll');
+      const savedRaw = readSessionStorage('igrs:search-scroll');
+      const saved = Number(savedRaw);
+      if (savedRaw !== null && Number.isFinite(saved) && saved >= 0) {
+        window.scrollTo({ top: saved, behavior: 'instant' as ScrollBehavior });
+        removeSessionStorage('igrs:search-scroll');
       }
     }
   }, [filterVersion]);
@@ -123,6 +134,11 @@ export function SearchPage() {
     actions.setPage(1);
   }, [actions]);
 
+  const handleSelectHistoryQuery = useCallback((value: string) => {
+    actions.setQuery(value);
+    actions.setPage(1);
+  }, [actions]);
+
   const getFilterLabel = useCallback((filterKey: string, filterValue: string | number): string => {
     const meta_ = data?.meta;
     if (!meta_) return String(filterValue);
@@ -142,22 +158,7 @@ export function SearchPage() {
 
   const exportCSV = useCallback(() => {
     if (!data) return;
-    const meta = data.meta;
-    const header = 'Name,Publisher,Year,Rating,Platforms,Descriptors\n';
-    const rows = filtered.map(r => {
-      const ratingId = r.game.ratings?.[0];
-      const ratingLabel = ratingId !== undefined ? ratingName(meta, ratingId) : '';
-      const platformLabels = platformIdsFromGame(meta, r.game).map(id => platformName(meta, id, lang)).join(';');
-      const descriptorLabels = descriptorIdsFromGame(r.game).map(id => descriptorName(meta, id, lang)).join(';');
-      return `"${r.game.name.replace(/"/g, '""')}","${r.game.publisherName.replace(/"/g, '""')}",${r.game.releaseYear},"${ratingLabel.replace(/"/g, '""')}","${platformLabels.replace(/"/g, '""')}","${descriptorLabels.replace(/"/g, '""')}"`;
-    }).join('\n');
-    const blob = new Blob([header + rows], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'igrs-search-results.csv';
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadCsvDocument(buildCsvDocument(filtered, data.meta, lang));
   }, [filtered, data, lang]);
 
   // Error / loading states
@@ -204,7 +205,25 @@ export function SearchPage() {
     <main className={`app-layout${selectedGame ? ' detail-active' : ''}`} data-route-ready="search">
       <div className="main-content">
         {!selectedGame && (
-          <SearchHeader query={query} publisher={publisher} onQueryChange={v => { actions.setQuery(v); actions.setPage(1); }} onPublisherChange={v => { actions.setPublisher(v); actions.setPage(1); }} statsText={statsText} sort={sort} onSortChange={s => { actions.setSort(s); actions.setPage(1); }} activeFilters={activeFilters} onClearAll={() => actions.clearAll(true)} t={t} publishers={publishers} onExportCSV={exportCSV} />
+          <SearchHeader
+            query={query}
+            publisher={publisher}
+            onQueryChange={(v) => { actions.setQuery(v); actions.setPage(1); }}
+            onPublisherChange={(v) => { actions.setPublisher(v); actions.setPage(1); }}
+            statsText={statsText}
+            sort={sort}
+            onSortChange={(s) => { actions.setSort(s); actions.setPage(1); }}
+            activeFilters={activeFilters}
+            onClearAll={() => actions.clearAll(true)}
+            t={t}
+            publishers={publishers}
+            onExportCSV={exportCSV}
+            historyQueries={searchHistory.history}
+            onCommitQuery={searchHistory.commitQuery}
+            onSelectHistoryQuery={handleSelectHistoryQuery}
+            onRemoveHistoryQuery={searchHistory.removeQuery}
+            onClearHistory={searchHistory.clearHistory}
+          />
         )}
         <div id="list-view" className={selectedGame ? pageStyles.listViewHidden : undefined}>
           <div className={pageStyles.rppToggle} role="group" aria-label={t('search.resultsPerPage')}>
@@ -224,9 +243,11 @@ export function SearchPage() {
           {selectedGame ? <GameDetailInline allGames={data.games} game={selectedGame} lang={lang} meta={data.meta} onBack={hideDetail} onNavigate={showDetail} steamApi={steamApi} t={t} unlocked={unlocked} /> : null}
         </div>
       </div>
-      <aside className={`sidebar${selectedGame ? ' sidebar--collapsed' : ''}`} id="sidebar">
-          <FilterSidebar clearAll={actions.clearAll} descriptors={descriptors} lang={lang} meta={data.meta} platforms={platforms} publisher={deferredPublisher} query={deferredQuery} ratings={ratings} searchIndex={searchIndex} setDescriptors={next => { actions.setDescriptors(next); actions.setPage(1); }} setPlatforms={next => { actions.setPlatforms(next); actions.setPage(1); }} setRatings={next => { actions.setRatings(next); actions.setPage(1); }} setYears={next => { actions.setYears(next); actions.setPage(1); }} setPublisher={v => { actions.setPublisher(v); actions.setPage(1); }} t={t} years={years} publishers={publishers} />
-      </aside>
+       <aside className={`sidebar${selectedGame ? ' sidebar--collapsed' : ''}`} id="sidebar" aria-label={t('sidebar.filters')}>
+         <div className={pageStyles.sidebarScroll}>
+           <FilterSidebar clearAll={actions.clearAll} descriptors={descriptors} lang={lang} meta={data.meta} platforms={platforms} publisher={deferredPublisher} query={deferredQuery} ratings={ratings} searchIndex={searchIndex} setDescriptors={next => { actions.setDescriptors(next); actions.setPage(1); }} setPlatforms={next => { actions.setPlatforms(next); actions.setPage(1); }} setRatings={next => { actions.setRatings(next); actions.setPage(1); }} setYears={next => { actions.setYears(next); actions.setPage(1); }} setPublisher={v => { actions.setPublisher(v); actions.setPage(1); }} t={t} years={years} publishers={publishers} />
+         </div>
+       </aside>
       <FilterResultAnnouncement resultCount={filtered.length} t={t} />
     </main>
   );

@@ -1,0 +1,15 @@
+/* ═══════════════════════════════════════════════════════════════
+   Z-INDEX — Layer definitions
+   Semantic z-scale for consistent layering.
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ─── Z-index scale ───────────────────────────────────────── */
+  --z-base: 0;
+  --z-sticky: 100;
+  --z-dropdown: 200;
+  --z-overlay: 300;
+  --z-modal: 400;
+  --z-toast: 500;
+  --z-skip-link: 9999;
+}

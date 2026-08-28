@@ -1,4 +1,5 @@
 import { useCallback, useSyncExternalStore } from 'react';
+import { readSessionStorage, removeSessionStorage, writeSessionStorage } from '@/shared/lib/browser-storage';
 
 const STORAGE_KEY = 'igrs-recent';
 const MAX_ITEMS = 8;
@@ -7,22 +8,29 @@ const MAX_ITEMS = 8;
 let cachedRaw: string | null | undefined = undefined; // undefined = never read / invalidated
 let cachedSnapshot: number[] = [];
 
-function parseIds(raw: string | null): number[] {
+export function parseRecentlyViewedIds(raw: string | null): number[] {
   if (!raw) return [];
   try {
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    return parsed.filter((id): id is number => Number.isFinite(id)).slice(0, MAX_ITEMS);
+    const seen = new Set<number>();
+    const valid: number[] = [];
+    for (const id of parsed) {
+      if (!Number.isInteger(id) || id <= 0 || seen.has(id)) continue;
+      seen.add(id);
+      valid.push(id);
+    }
+    return valid.slice(0, MAX_ITEMS);
   } catch {
     return [];
   }
 }
 
 function getSnapshot(): number[] {
-  const raw = sessionStorage.getItem(STORAGE_KEY);
+  const raw = readSessionStorage(STORAGE_KEY);
   if (raw === cachedRaw && cachedRaw !== undefined) return cachedSnapshot;
   cachedRaw = raw;
-  cachedSnapshot = parseIds(raw);
+  cachedSnapshot = parseRecentlyViewedIds(raw);
   return cachedSnapshot;
 }
 
@@ -51,11 +59,9 @@ function subscribe(listener: () => void): () => void {
  */
 export function recordRecentlyViewed(gameId: number): void {
   if (!Number.isFinite(gameId) || gameId <= 0) return;
-  const current = parseIds(sessionStorage.getItem(STORAGE_KEY));
+  const current = parseRecentlyViewedIds(readSessionStorage(STORAGE_KEY));
   const next = [gameId, ...current.filter(id => id !== gameId)].slice(0, MAX_ITEMS);
-  try {
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-  } catch { /* storage full or unavailable */ }
+  writeSessionStorage(STORAGE_KEY, JSON.stringify(next));
   emitChange();
 }
 
@@ -64,9 +70,7 @@ export function recordRecentlyViewed(gameId: number): void {
  * Usable in both product code (e.g., a "clear history" button) and tests.
  */
 export function clearRecentlyViewed(): void {
-  try {
-    sessionStorage.removeItem(STORAGE_KEY);
-  } catch { /* storage unavailable */ }
+  removeSessionStorage(STORAGE_KEY);
   emitChange();
 }
 

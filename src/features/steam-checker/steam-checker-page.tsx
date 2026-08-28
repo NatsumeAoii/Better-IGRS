@@ -9,6 +9,7 @@ import { useRequiredIgrsData } from '@/app/providers/data-provider';
 import { createSteamApi, isSteamProxyError } from '@/shared/api/steam-api';
 import { ErrorState, LoadingState } from '@/shared/components/data-state';
 import { isAbortError } from '@/shared/lib/abort';
+import { readSessionStorage, removeSessionStorage, writeSessionStorage } from '@/shared/lib/browser-storage';
 import { parseSteamAppId } from '@/shared/lib/steam-domain';
 import { sanitizeHtml, stripHtml } from '@/shared/lib/html';
 import { SteamCheckerSidebar } from '@/features/steam-checker/steam-checker-sidebar';
@@ -24,11 +25,17 @@ type CheckerState =
 
 const HISTORY_KEY = 'steam-checker-history';
 const getHistory = (): string[] => {
-  try { return JSON.parse(sessionStorage.getItem(HISTORY_KEY) || '[]'); } catch { return []; }
+  const raw = readSessionStorage(HISTORY_KEY);
+  if (!raw) return [];
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((id): id is string => /^\d+$/.test(id)).slice(0, 5);
+  } catch { return []; }
 };
 const addHistoryEntry = (appId: string, setter: (ids: string[]) => void) => {
   const history = [appId, ...getHistory().filter(id => id !== appId)].slice(0, 5);
-  try { sessionStorage.setItem(HISTORY_KEY, JSON.stringify(history)); } catch { /* storage blocked */ }
+  writeSessionStorage(HISTORY_KEY, JSON.stringify(history));
   setter(history);
 };
 
@@ -49,12 +56,13 @@ interface CachedResult {
 
 function readCachedResult(appId: string): CachedResult | null {
   try {
-    const raw = sessionStorage.getItem(RESULT_CACHE_PREFIX + appId);
+    const raw = readSessionStorage(RESULT_CACHE_PREFIX + appId);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<CachedResult> | null;
     if (!parsed || typeof parsed !== 'object') return null;
     if (parsed.appId !== appId) return null;
     if (!parsed.steamGame || typeof parsed.steamGame !== 'object') return null;
+    if (!Number.isFinite(Number(parsed.checkedAt)) || Number(parsed.checkedAt) <= 0) return null;
     return {
       appId: parsed.appId,
       checkedAt: Number(parsed.checkedAt) || 0,
@@ -68,20 +76,22 @@ function readCachedResult(appId: string): CachedResult | null {
 
 function cacheResult(appId: string, reviewSummary: SteamReviewSummary | null, steamGame: SteamGameDetails): void {
   try {
-    sessionStorage.setItem(
+    writeSessionStorage(
       RESULT_CACHE_PREFIX + appId,
       JSON.stringify({ appId, checkedAt: Date.now(), reviewSummary, steamGame } satisfies CachedResult)
     );
     // Prune cached results that fell outside the history window.
     const keep = new Set(getHistory());
     const staleKeys: string[] = [];
-    for (let i = 0; i < sessionStorage.length; i += 1) {
-      const key = sessionStorage.key(i);
-      if (key?.startsWith(RESULT_CACHE_PREFIX) && !keep.has(key.slice(RESULT_CACHE_PREFIX.length))) {
-        staleKeys.push(key);
-      }
+    if (typeof window !== 'undefined') {
+      try {
+        for (let i = 0; i < window.sessionStorage.length; i += 1) {
+          const key = window.sessionStorage.key(i);
+          if (key?.startsWith(RESULT_CACHE_PREFIX) && !keep.has(key.slice(RESULT_CACHE_PREFIX.length))) staleKeys.push(key);
+        }
+        for (const key of staleKeys) removeSessionStorage(key);
+      } catch { /* storage blocked or full — caching is best-effort */ }
     }
-    for (const key of staleKeys) sessionStorage.removeItem(key);
   } catch { /* storage blocked or full — caching is best-effort */ }
 }
 
@@ -405,7 +415,7 @@ function SteamCheckerMain({ onRetry, state, t }: { onRetry: (appId: string) => v
   return (
     <section className={`detail-card ${styles.fadeIn} ${styles.resultCard}`}>
       {headerImageUrl ? (
-        <img src={headerImageUrl.href} alt="" loading="lazy" width={460} height={215} />
+        <img src={headerImageUrl.href} alt="" loading="lazy" decoding="async" width={460} height={215} />
       ) : null}
       <div className={`detail-header ${styles.resultHeader}`}>
         <div className={styles.resultTitleBlock}>
@@ -433,7 +443,7 @@ function SteamCheckerMain({ onRetry, state, t }: { onRetry: (appId: string) => v
           <div className={styles.screenshotGrid}>
             {screenshots.map((url, index) => (
               <button key={url.href} type="button" onClick={event => openImageViewer(url, event.currentTarget, screenshots)} aria-label={t('steamchecker.openImage').replace('{number}', String(index + 1))}>
-                <img src={url.href} alt={`${state.steamGame.name || t('steamchecker.unknown')} screenshot ${index + 1}`} loading="lazy" />
+                <img src={url.href} alt={`${state.steamGame.name || t('steamchecker.unknown')} screenshot ${index + 1}`} loading="lazy" decoding="async" width={320} height={180} />
               </button>
             ))}
           </div>

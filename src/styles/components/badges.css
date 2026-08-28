@@ -1,0 +1,104 @@
+/* ═══════════════════════════════════════════════════════════════
+   COMPONENTS — Badges & Tags
+   Rating badges, platform tags, indicator badges.
+   ═══════════════════════════════════════════════════════════════ */
+
+.rating-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 800;
+  border-radius: var(--radius-sm);
+  letter-spacing: 0;
+  color: #fff;
+}
+
+.rating-badge[data-rating="7"] {
+  background: var(--r3);
+}
+
+.rating-badge[data-rating="4"] {
+  background: var(--r7);
+}
+
+.rating-badge[data-rating="5"] {
+  background: var(--r13);
+  color: #1a1a1a;
+}
+
+.rating-badge[data-rating="28"] {
+  background: var(--r15);
+}
+
+.rating-badge[data-rating="6"] {
+  background: var(--r18);
+}
+
+.rating-badge[data-rating="35"] {
+  background: #111827;
+}
+
+[data-theme="dark"] .rating-badge[data-rating="35"] {
+  background: #334155;
+}
+
+.tag {
+  display: inline-flex;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  background: var(--bg-page);
+}
+
+.platform-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.descriptor-icons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.descriptor-icon {
+  display: inline-block;
+  position: relative;
+  z-index: 2;
+}
+
+.descriptor-icon img {
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+.tooltip-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.tooltip-wrapper:focus-within .tooltip-content,
+.tooltip-wrapper:hover .tooltip-content {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Tooltip custom properties for theming */
+:root {
+  --tooltip-bg: var(--text);
+  --tooltip-color: #fff;
+}
+
+.detail-no-descriptors {
+  font-size: 0.78rem;
+  color: var(--text-light);
+  font-style: italic;
+}

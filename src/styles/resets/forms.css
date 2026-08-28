@@ -1,0 +1,25 @@
+/* ═══════════════════════════════════════════════════════════════
+   RESETS — Forms normalization
+   Input, button, textarea, select styles.
+   ═══════════════════════════════════════════════════════════════ */
+
+input,
+textarea,
+select {
+  font-family: inherit;
+  font-size: 100%;
+  color: inherit;
+}
+
+button {
+  border: none;
+  background: transparent;
+}
+
+/* Remove default focus outlines - we add custom ones */
+button:focus,
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+}

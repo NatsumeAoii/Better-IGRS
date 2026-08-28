@@ -83,6 +83,7 @@ export function AppShell({ children }: AppShellProps) {
           </div>
           <nav className="header-actions" aria-label={t('app.navLabel')}>
             <NavLink to="/search/" className="btn" onMouseEnter={handleNavHover}>{t('nav.search')}</NavLink>
+            <NavLink to="/favorites/" className="btn" onMouseEnter={handleNavHover}>{t('nav.favorites')}</NavLink>
             <NavLink to="/ratings/" className="btn" onMouseEnter={handleNavHover}>{t('nav.ratings')}</NavLink>
             <NavLink to="/steamchecker/" className="btn" onMouseEnter={handleNavHover}>{t('nav.steamchecker')}</NavLink>
           </nav>

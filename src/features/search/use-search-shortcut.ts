@@ -5,7 +5,7 @@ export function useSearchShortcut(inputId = 'search-input') {
     const onKeyDown = (event: globalThis.KeyboardEvent) => {
       if (event.key === '/' && !event.ctrlKey && !event.metaKey && !event.altKey) {
         const target = event.target as HTMLElement | null;
-        if (target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA' || target?.tagName === 'SELECT') return;
+        if (target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA' || target?.tagName === 'SELECT' || target?.isContentEditable || target?.closest('[contenteditable="true"]')) return;
         event.preventDefault();
         document.getElementById(inputId)?.focus();
       }
