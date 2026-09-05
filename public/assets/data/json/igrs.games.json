@@ -479,11 +479,11 @@
       6
     ],
     "descriptors": [
-      3,
+      11,
       26,
-      2,
       12,
-      11
+      3,
+      2
     ],
     "platforms": [
       2,
@@ -933,7 +933,7 @@
     "id": 3875,
     "name": "Citampi Stories: RPG Love Life",
     "releaseYear": 2019,
-    "publisherName": "Noctua Games",
+    "publisherName": "NOCTUA GAMES INTERNATIONAL PTE. LTD.",
     "description": "Citampi Stories adalah game simulasi kehidupa, bercerita tentang perjuangan anak muda yang rela pergi merantau untuk membantu orang tuanya membayar hutang ke desa bernama Citampi, Dalam permainan ini kamu akan merasakan langsung kehidupan dikampung citampi mulai yang penuh petualangan, bekerja mencari uang, bersosialisasi dengan seluruh warga citampi hingga kehidupan asmara yang mendebarkan dengan karakter wanita di Citampi.",
     "ratings": [
       7
@@ -1240,13 +1240,13 @@
       6
     ],
     "descriptors": [
-      3,
-      15,
-      26,
-      2,
       10,
+      11,
+      26,
       12,
-      11
+      3,
+      2,
+      15
     ],
     "platforms": [
       0,
@@ -1411,11 +1411,11 @@
       6
     ],
     "descriptors": [
-      11,
-      26,
-      12,
       3,
-      2
+      26,
+      2,
+      12,
+      11
     ],
     "platforms": [
       11
@@ -1841,11 +1841,11 @@
       6
     ],
     "descriptors": [
-      26,
-      2,
       10,
+      11,
+      26,
       12,
-      11
+      2
     ],
     "platforms": [
       3,
@@ -9625,11 +9625,11 @@
       6
     ],
     "descriptors": [
-      26,
-      12,
       3,
+      15,
+      26,
       2,
-      15
+      12
     ],
     "platforms": [
       3
